@@ -1,0 +1,140 @@
+{
+  "dataset_name": "HER LIFE Synthetic Benchmark + FedCycle Validation Set",
+  "label": "DEMO DATA \u2014 SYNTHETIC, NOT REAL PATIENT RECORDS",
+  "fedcycle_benchmark": {
+    "benchmark_source": "FedCycle Clinical Observational Dataset",
+    "total_cycles": 1665,
+    "mean_cycle_length": 29.3,
+    "median_cycle_length": 29.0,
+    "std_cycle_length": 3.89,
+    "p10_cycle_length": 25.0,
+    "p90_cycle_length": 34.0
+  },
+  "model_a_period_prediction": {
+    "model_type": "Ridge Regression with Lag Features + GroupShuffleSplit",
+    "sample_size": 1765,
+    "test_sample_size": 454,
+    "mae_days": 3.949,
+    "rmse_days": 5.154,
+    "features": [
+      "lag_1",
+      "lag_2",
+      "lag_3",
+      "rolling_mean_3",
+      "rolling_std_3"
+    ],
+    "uncertainty_margin_days": 8.5
+  },
+  "model_b_symptom_forecasting": {
+    "model_type": "Multi-Output Random Forest with GroupShuffleSplit",
+    "train_samples": 19992,
+    "test_samples": 5008,
+    "overall_subset_accuracy": 0.835,
+    "symptoms": {
+      "cramps": {
+        "test_accuracy": 0.84,
+        "baseline_prevalence": 0.184
+      },
+      "bloating": {
+        "test_accuracy": 0.832,
+        "baseline_prevalence": 0.168
+      },
+      "headache": {
+        "test_accuracy": 0.857,
+        "baseline_prevalence": 0.143
+      },
+      "fatigue": {
+        "test_accuracy": 0.831,
+        "baseline_prevalence": 0.169
+      },
+      "mood_changes": {
+        "test_accuracy": 0.808,
+        "baseline_prevalence": 0.192
+      },
+      "hot_flashes": {
+        "test_accuracy": 0.881,
+        "baseline_prevalence": 0.119
+      },
+      "sleep_disturbance": {
+        "test_accuracy": 0.794,
+        "baseline_prevalence": 0.206
+      }
+    },
+    "input_features": [
+      "age_years",
+      "cycle_day_estimate",
+      "sleep_hours",
+      "stress_level_0_4",
+      "activity_level_0_4",
+      "mood_score_0_4",
+      "energy_score_0_4",
+      "cramps_severity_0_3",
+      "bloating_severity_0_3",
+      "headache_severity_0_3",
+      "fatigue_severity_0_3",
+      "mood_changes_severity_0_3",
+      "hot_flashes_severity_0_3",
+      "sleep_disturbance_severity_0_3",
+      "period_day_flag_synthetic"
+    ],
+    "honest_disclaimer": "Predictions are tentative statistical patterns derived from self-reports, NOT clinically validated medical diagnostic claims."
+  },
+  "model_d_lifestyle_correlations": {
+    "insights": [
+      {
+        "factor_pair": "High Stress & Sleep Disturbance",
+        "correlation": 0.165,
+        "interpretation": "Elevated self-reported stress is moderately associated with increased sleep disruption.",
+        "safety_note": "Statistical association; not clinical cortisol measurement."
+      },
+      {
+        "factor_pair": "Low Sleep & Fatigue Severity",
+        "correlation": -0.071,
+        "interpretation": "Shorter sleep duration corresponds with higher reported daytime fatigue.",
+        "safety_note": "A regular sleep routine supports physiological recovery."
+      },
+      {
+        "factor_pair": "Physical Activity & Mood Score",
+        "correlation": -0.004,
+        "interpretation": "Moderate physical movement is positively correlated with higher self-rated mood.",
+        "safety_note": "Gentle movement during cramps may offer relief for some individuals."
+      }
+    ],
+    "matrix_keys": [
+      "sleep_hours",
+      "stress_level_0_4",
+      "activity_level_0_4",
+      "mood_score_0_4",
+      "energy_score_0_4",
+      "cramps_severity_0_3",
+      "bloating_severity_0_3",
+      "headache_severity_0_3",
+      "fatigue_severity_0_3",
+      "mood_changes_severity_0_3",
+      "hot_flashes_severity_0_3",
+      "sleep_disturbance_severity_0_3"
+    ]
+  },
+  "model_c_cycle_pattern_monitoring": {
+    "normal_range_days": [
+      21,
+      35
+    ],
+    "adolescent_normal_range_days": [
+      21,
+      45
+    ],
+    "variability_threshold_days": 7.0,
+    "rule": "Flags changes > 7 days variation for review with a gynecologist"
+  },
+  "model_e_content_recommender": {
+    "supported_stages": [
+      "teen_menarche",
+      "reproductive",
+      "pregnancy_postpartum",
+      "perimenopause",
+      "menopause"
+    ],
+    "total_articles": 25
+  }
+}
