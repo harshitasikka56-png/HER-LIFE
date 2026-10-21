@@ -3,6 +3,8 @@ import { UserProfile, LifeStage } from './types';
 import { api, FALLBACK_DEMO_USERS } from './services/api';
 import { Header } from './components/Header';
 import { Navigation, NavTab } from './components/Navigation';
+import { PreNotificationModal } from './components/PreNotificationModal';
+import { NotificationToast } from './components/NotificationToast';
 import { DashboardPage } from './pages/DashboardPage';
 import { CalendarPage } from './pages/CalendarPage';
 import { CheckInPage } from './pages/CheckInPage';
@@ -13,12 +15,20 @@ import { AIGuidePage } from './pages/AIGuidePage';
 import { ReportsPage } from './pages/ReportsPage';
 import { PrivacyPage } from './pages/PrivacyPage';
 import { Heart, ShieldCheck } from 'lucide-react';
+import { Language, translations } from './services/i18n';
 
 export function App() {
   const [currentUser, setCurrentUser] = useState<UserProfile>(FALLBACK_DEMO_USERS[2]); // Priya (Reproductive) by default
   const [demoUsers, setDemoUsers] = useState<UserProfile[]>(FALLBACK_DEMO_USERS);
   const [activeTab, setActiveTab] = useState<NavTab>('dashboard');
   const [discreteMode, setDiscreteMode] = useState(true);
+  const [language, setLanguage] = useState<Language>('hinglish'); // Start in friendly Hinglish as requested!
+  const [showPreNotificationModal, setShowPreNotificationModal] = useState(false);
+  const [toast, setToast] = useState<{ show: boolean; title: string; body: string }>({
+    show: false,
+    title: '',
+    body: ''
+  });
 
   useEffect(() => {
     async function init() {
@@ -26,7 +36,6 @@ export function App() {
         const users = await api.getDemoUsers();
         if (users && users.length > 0) {
           setDemoUsers(users);
-          // Keep current user in sync
           const matched = users.find(u => u.id === currentUser.id) || users[2];
           setCurrentUser(matched);
         }
@@ -55,8 +64,33 @@ export function App() {
     }
   }
 
+  function handleTriggerToast(title: string, body: string) {
+    setToast({ show: true, title, body });
+  }
+
+  const isHinglish = language === 'hinglish';
+  const t = translations[language];
+
   return (
     <div className="min-h-screen bg-[#FAF7F4] flex flex-col font-sans text-warm-textDark antialiased selection:bg-brand-100 selection:text-brand-900">
+      {/* On-Screen Interactive Pre-Notification Toast Banner */}
+      <NotificationToast
+        show={toast.show}
+        title={toast.title}
+        body={toast.body}
+        onDismiss={() => setToast({ ...toast, show: false })}
+      />
+
+      {/* Pre-Notification Center Modal */}
+      <PreNotificationModal
+        isOpen={showPreNotificationModal}
+        onClose={() => setShowPreNotificationModal(false)}
+        discreteMode={discreteMode}
+        onToggleDiscrete={() => setDiscreteMode(!discreteMode)}
+        language={language}
+        onTriggerToast={handleTriggerToast}
+      />
+
       {/* Header */}
       <Header
         currentUser={currentUser}
@@ -65,15 +99,26 @@ export function App() {
         onUpdateStage={handleUpdateStage}
         discreteMode={discreteMode}
         onToggleDiscrete={() => setDiscreteMode(!discreteMode)}
+        language={language}
+        onToggleLanguage={() => setLanguage(l => l === 'en' ? 'hinglish' : 'en')}
+        onOpenPreNotifications={() => setShowPreNotificationModal(true)}
       />
 
       {/* Navigation Bar */}
-      <Navigation activeTab={activeTab} onTabChange={(t) => setActiveTab(t)} />
+      <Navigation
+        activeTab={activeTab}
+        onTabChange={(t) => setActiveTab(t)}
+        language={language}
+      />
 
       {/* Main Content Area */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
         {activeTab === 'dashboard' && (
-          <DashboardPage currentUser={currentUser} onNavigateTab={setActiveTab} />
+          <DashboardPage
+            currentUser={currentUser}
+            onNavigateTab={setActiveTab}
+            language={language}
+          />
         )}
         {activeTab === 'calendar' && (
           <CalendarPage currentUser={currentUser} />
@@ -91,7 +136,7 @@ export function App() {
           <LifeStagesPage currentUser={currentUser} onUpdateStage={handleUpdateStage} />
         )}
         {activeTab === 'aiguide' && (
-          <AIGuidePage currentUser={currentUser} />
+          <AIGuidePage currentUser={currentUser} language={language} />
         )}
         {activeTab === 'reports' && (
           <ReportsPage currentUser={currentUser} />
@@ -114,12 +159,12 @@ export function App() {
                 <Heart className="w-3.5 h-3.5 fill-white" />
               </div>
               <span className="font-bold text-warm-textDark font-serif text-sm">HER LIFE</span>
-              <span>— "Every Stage. Every Cycle. Every You."</span>
+              <span>— "{t.app_tagline}"</span>
             </div>
             <div className="flex items-center gap-4 text-[11px]">
               <span className="flex items-center gap-1 text-emerald-700">
                 <ShieldCheck className="w-3.5 h-3.5" />
-                Privacy Safeguarded
+                {isHinglish ? 'Surakshit & Private' : 'Privacy Safeguarded'}
               </span>
               <span>•</span>
               <span>FastAPI + PyTorch/scikit-learn + React + TypeScript</span>
@@ -127,9 +172,10 @@ export function App() {
           </div>
 
           <div className="p-3.5 bg-warm-cardMuted/60 rounded-2xl border border-warm-border/60 text-[11px] leading-relaxed">
-            <strong>Medical & Educational Disclaimer:</strong> HER LIFE is an AI-powered health tracking and educational platform. 
-            Algorithm predictions, cycle estimates, and symptom trends are mathematical projections based on user-entered logs and do NOT constitute clinical diagnosis, medical treatment, or contraception. 
-            Always consult a licensed healthcare professional for clinical concerns, severe pelvic pain, or irregular bleeding patterns.
+            <strong>{isHinglish ? 'Medical Aur Educational Disclaimer:' : 'Medical & Educational Disclaimer:'}</strong>{' '}
+            {isHinglish 
+              ? 'HER LIFE ek AI health tracking aur educational companion hai. Sabhi predictions aur trends mathematical anumaan hain, kisi clinical diagnosis ya medical treatment ka badal nahi hain. Kisi bhi gambhir dard ya aniyamit bleeding ke liye licensed doctor se sampark karein.'
+              : 'HER LIFE is an AI-powered health tracking and educational platform. Algorithm predictions, cycle estimates, and symptom trends are mathematical projections based on user-entered logs and do NOT constitute clinical diagnosis, medical treatment, or contraception. Always consult a licensed healthcare professional for clinical concerns, severe pelvic pain, or irregular bleeding patterns.'}
           </div>
 
           <div className="text-center text-[11px] text-warm-textMuted pt-2">

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { UserProfile, LifeStage } from '../types';
-import { Heart, Bell, Eye, EyeOff, Users, ChevronDown, Sparkles, ShieldAlert } from 'lucide-react';
+import { Heart, Bell, Eye, EyeOff, Users, ChevronDown, Sparkles, ShieldAlert, Globe } from 'lucide-react';
+import { Language, translations } from '../services/i18n';
 
 interface HeaderProps {
   currentUser: UserProfile;
@@ -9,14 +10,17 @@ interface HeaderProps {
   onUpdateStage: (stage: LifeStage) => void;
   discreteMode: boolean;
   onToggleDiscrete: () => void;
+  language: Language;
+  onToggleLanguage: () => void;
+  onOpenPreNotifications: () => void;
 }
 
-const STAGE_LABELS: Record<LifeStage, { label: string; color: string }> = {
-  teen_menarche: { label: 'Puberty & First Period', color: 'bg-rose-100 text-rose-800 border-rose-200' },
-  college_gen_z: { label: 'Gen Z & College', color: 'bg-lavender-200 text-lavender-700 border-lavender-300' },
-  reproductive: { label: 'Reproductive Years', color: 'bg-brand-100 text-brand-700 border-brand-200' },
-  perimenopause: { label: 'Perimenopause', color: 'bg-plum-100 text-plum-700 border-plum-200' },
-  menopause: { label: 'Menopause & Beyond', color: 'bg-sage-100 text-sage-800 border-sage-200' },
+const STAGE_LABELS: Record<LifeStage, { en: string; hinglish: string; color: string }> = {
+  teen_menarche: { en: 'Puberty & First Period', hinglish: 'Pehla Period (Teen)', color: 'bg-rose-100 text-rose-800 border-rose-200' },
+  college_gen_z: { en: 'Gen Z & College', hinglish: 'College & Gen Z (Study & Stress)', color: 'bg-lavender-200 text-lavender-700 border-lavender-300' },
+  reproductive: { en: 'Reproductive Years', hinglish: 'Reproductive Years (Fertility & Cycles)', color: 'bg-brand-100 text-brand-700 border-brand-200' },
+  perimenopause: { en: 'Perimenopause', hinglish: 'Perimenopause (Hormone Shifts)', color: 'bg-plum-100 text-plum-700 border-plum-200' },
+  menopause: { en: 'Menopause & Beyond', hinglish: 'Menopause (Post-Period Health)', color: 'bg-sage-100 text-sage-800 border-sage-200' },
 };
 
 export const Header: React.FC<HeaderProps> = ({
@@ -25,10 +29,14 @@ export const Header: React.FC<HeaderProps> = ({
   onSelectUser,
   onUpdateStage,
   discreteMode,
-  onToggleDiscrete
+  onToggleDiscrete,
+  language,
+  onToggleLanguage,
+  onOpenPreNotifications
 }) => {
   const [showPersonaDropdown, setShowPersonaDropdown] = useState(false);
-  const [showNotifications, setShowNotifications] = useState(false);
+  const isHinglish = language === 'hinglish';
+  const t = translations[language];
 
   return (
     <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-warm-border">
@@ -38,7 +46,7 @@ export const Header: React.FC<HeaderProps> = ({
           <div className="flex items-center gap-1.5 max-w-4xl mx-auto w-full">
             <ShieldAlert className="w-4 h-4 text-amber-700 shrink-0" />
             <span>
-              <strong>DEMO DATA — SYNTHETIC, NOT REAL PATIENT RECORDS.</strong> Values are algorithmically simulated for demonstration and machine learning validation.
+              <strong>{t.demo_badge}.</strong> {isHinglish ? "Yeh records simulation aur testing ke liye hain, kisi real patient ke nahi." : "Values are algorithmically simulated for demonstration and machine learning validation."}
             </span>
           </div>
           <span className="hidden sm:inline-block bg-amber-200/60 text-amber-800 px-2 py-0.5 rounded text-[10px] font-semibold tracking-wider">
@@ -57,15 +65,25 @@ export const Header: React.FC<HeaderProps> = ({
             <div className="flex items-center gap-2">
               <span className="text-xl font-bold tracking-tight text-warm-textDark font-serif">HER LIFE</span>
               <span className="text-[10px] font-semibold bg-brand-50 text-brand-700 px-2 py-0.5 rounded-full border border-brand-200">
-                AI COMPANION
+                {isHinglish ? 'AI SAHELI' : 'AI COMPANION'}
               </span>
             </div>
-            <p className="text-xs text-warm-textMuted hidden sm:block">Every Stage. Every Cycle. Every You.</p>
+            <p className="text-xs text-warm-textMuted hidden sm:block">{t.app_tagline}</p>
           </div>
         </div>
 
         {/* Persona Switcher & Controls */}
-        <div className="flex items-center gap-2 sm:gap-4">
+        <div className="flex items-center gap-2 sm:gap-3">
+          {/* Language Switcher Button (English / Hinglish) */}
+          <button
+            onClick={onToggleLanguage}
+            className="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full border border-brand-200 bg-brand-50/80 text-brand-800 hover:bg-brand-100 transition shadow-2xs"
+            title="Toggle Language: English / Hinglish"
+          >
+            <Globe className="w-3.5 h-3.5 text-brand-600" />
+            <span>{isHinglish ? 'Hinglish (हिंदी)' : 'English'}</span>
+          </button>
+
           {/* Life Stage Badge */}
           <div className="relative">
             <select
@@ -75,11 +93,11 @@ export const Header: React.FC<HeaderProps> = ({
                 STAGE_LABELS[currentUser.life_stage]?.color || 'bg-gray-100 text-gray-800'
               }`}
             >
-              <option value="teen_menarche">Puberty & First Period</option>
-              <option value="college_gen_z">Gen Z & College</option>
-              <option value="reproductive">Reproductive Years</option>
-              <option value="perimenopause">Perimenopause</option>
-              <option value="menopause">Menopause & Later Life</option>
+              <option value="teen_menarche">{isHinglish ? 'Pehla Period (Puberty/Teen)' : 'Puberty & First Period'}</option>
+              <option value="college_gen_z">{isHinglish ? 'Gen Z & College (Study/Stress)' : 'Gen Z & College'}</option>
+              <option value="reproductive">{isHinglish ? 'Reproductive Years (Fertility/Cycles)' : 'Reproductive Years'}</option>
+              <option value="perimenopause">{isHinglish ? 'Perimenopause (Garmi/Shifts)' : 'Perimenopause'}</option>
+              <option value="menopause">{isHinglish ? 'Menopause (Post-Period)' : 'Menopause & Later Life'}</option>
             </select>
             <ChevronDown className="w-3.5 h-3.5 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none opacity-60" />
           </div>
@@ -91,7 +109,7 @@ export const Header: React.FC<HeaderProps> = ({
               className="flex items-center gap-2 text-xs font-medium text-warm-textDark bg-warm-cardMuted hover:bg-warm-border px-3 py-1.5 rounded-full border border-warm-border transition"
             >
               <Users className="w-3.5 h-3.5 text-brand-600" />
-              <span className="hidden md:inline">{currentUser.full_name}</span>
+              <span className="hidden md:inline">{currentUser.full_name.split(' ')[0]}</span>
               <span className="md:hidden">Persona</span>
               <ChevronDown className="w-3 h-3 text-warm-textMuted" />
             </button>
@@ -130,47 +148,22 @@ export const Header: React.FC<HeaderProps> = ({
           {/* Discrete Preview Toggle (Privacy Requirement) */}
           <button
             onClick={onToggleDiscrete}
-            title={discreteMode ? "Discrete mode ON (sensitive terms masked)" : "Discrete mode OFF"}
+            title={discreteMode ? "Discrete mode ON (Parda mode)" : "Discrete mode OFF"}
             className="p-2 rounded-full text-warm-textMuted hover:text-brand-600 hover:bg-warm-cardMuted transition relative"
           >
             {discreteMode ? <EyeOff className="w-4 h-4 text-plum-500" /> : <Eye className="w-4 h-4" />}
           </button>
 
-          {/* Notifications button */}
-          <div className="relative">
-            <button
-              onClick={() => setShowNotifications(!showNotifications)}
-              className="p-2 rounded-full text-warm-textMuted hover:text-brand-600 hover:bg-warm-cardMuted transition relative"
-            >
-              <Bell className="w-4 h-4" />
-              <span className="absolute top-1 right-1 w-2 h-2 bg-brand-500 rounded-full" />
-            </button>
-
-            {showNotifications && (
-              <div className="absolute right-0 mt-2 w-72 bg-white rounded-2xl shadow-soft-lg border border-warm-border p-3 z-50">
-                <div className="flex items-center justify-between pb-2 border-b border-warm-border text-xs font-semibold text-warm-textDark">
-                  <span>Smart Reminders</span>
-                  <span className="text-[10px] text-plum-600 bg-plum-50 px-1.5 py-0.5 rounded">
-                    {discreteMode ? 'Discrete Mask Active' : 'Normal'}
-                  </span>
-                </div>
-                <div className="py-2 space-y-2 text-xs">
-                  <div className="p-2 bg-brand-50/60 rounded-xl border border-brand-100">
-                    <p className="font-medium text-brand-800">
-                      {discreteMode ? 'Reminder: Personal Check-In' : 'Upcoming Period Notice'}
-                    </p>
-                    <p className="text-[11px] text-brand-600 mt-0.5">
-                      {discreteMode ? 'Time for your daily wellness check-in.' : 'Estimated in 3 days. Carry your preferred products.'}
-                    </p>
-                  </div>
-                  <div className="p-2 bg-sage-50/60 rounded-xl border border-sage-100">
-                    <p className="font-medium text-sage-800">Hydration & Rest</p>
-                    <p className="text-[11px] text-sage-600 mt-0.5">Remember your 6-8 glasses of water today.</p>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
+          {/* Pre-Notification Center Button */}
+          <button
+            onClick={onOpenPreNotifications}
+            title="Pre-Notification Center (Advance alerts for periods & check-ins)"
+            className="p-2 rounded-full text-warm-textMuted hover:text-brand-600 hover:bg-brand-50 transition relative"
+          >
+            <Bell className="w-4 h-4 text-brand-600" />
+            <span className="absolute top-1 right-1 w-2 h-2 bg-rose-500 rounded-full animate-ping" />
+            <span className="absolute top-1 right-1 w-2 h-2 bg-rose-500 rounded-full" />
+          </button>
         </div>
       </div>
     </header>

@@ -4,19 +4,24 @@ import { api } from '../services/api';
 import { PredictionCard } from '../components/PredictionCard';
 import { SymptomForecastCard } from '../components/SymptomForecastCard';
 import { DailyGuidanceCard } from '../components/DailyGuidanceCard';
-import { Moon, Zap, Droplets, Sparkles, ArrowRight, ShieldCheck, HeartPulse } from 'lucide-react';
+import { Moon, Zap, Droplets, Sparkles, ArrowRight, HeartPulse } from 'lucide-react';
+import { Language, translations } from '../services/i18n';
 
 interface DashboardPageProps {
   currentUser: UserProfile;
   onNavigateTab: (tab: any) => void;
+  language: Language;
 }
 
-export const DashboardPage: React.FC<DashboardPageProps> = ({ currentUser, onNavigateTab }) => {
+export const DashboardPage: React.FC<DashboardPageProps> = ({ currentUser, onNavigateTab, language }) => {
   const [prediction, setPrediction] = useState<PeriodPrediction | null>(null);
   const [forecast, setForecast] = useState<SymptomForecast | null>(null);
   const [guidance, setGuidance] = useState<DailyGuidance | null>(null);
   const [todayLog, setTodayLog] = useState<DailyLogRecord | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const isHinglish = language === 'hinglish';
+  const t = translations[language];
 
   useEffect(() => {
     let isMounted = true;
@@ -49,7 +54,9 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ currentUser, onNav
     return (
       <div className="py-20 flex flex-col items-center justify-center text-warm-textMuted">
         <div className="w-10 h-10 border-3 border-brand-200 border-t-brand-600 rounded-full animate-spin mb-3" />
-        <p className="text-xs font-medium">Loading personalized health intelligence...</p>
+        <p className="text-xs font-medium">
+          {isHinglish ? 'Aapka health summary load ho raha hai...' : 'Loading personalized health intelligence...'}
+        </p>
       </div>
     );
   }
@@ -60,20 +67,22 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ currentUser, onNav
       <div className="bg-gradient-to-r from-brand-500 via-brand-600 to-plum-700 rounded-3xl p-6 sm:p-8 text-white shadow-soft relative overflow-hidden">
         <div className="max-w-xl relative z-10">
           <span className="text-xs uppercase tracking-wider font-semibold text-brand-200">
-            Welcome to HER LIFE
+            {isHinglish ? 'Aapka Swagat Hai' : 'Welcome to HER LIFE'}
           </span>
           <h2 className="text-2xl sm:text-3xl font-serif font-bold mt-1">
-            Hello, {currentUser.full_name.split(' ')[0]}
+            {isHinglish ? `Namaste, ${currentUser.full_name.split(' ')[0]}` : `Hello, ${currentUser.full_name.split(' ')[0]}`}
           </h2>
           <p className="text-sm text-brand-100 mt-2 leading-relaxed">
-            Your daily health summary is updated. Here is your personalized hormonal and lifestyle overview for today.
+            {isHinglish 
+              ? 'Aapka aaj ka personalized health summary taiyar hai. Neeche cycle aur lifestyle overview dekhein.'
+              : 'Your daily health summary is updated. Here is your personalized hormonal and lifestyle overview for today.'}
           </p>
           <div className="flex flex-wrap gap-3 mt-5">
             <button
               onClick={() => onNavigateTab('checkin')}
               className="bg-white text-brand-700 hover:bg-brand-50 text-xs font-bold px-4 py-2.5 rounded-xl shadow-soft transition flex items-center gap-1.5"
             >
-              <span>Daily Check-In</span>
+              <span>{t.daily_checkin}</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </button>
             <button
@@ -81,7 +90,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ currentUser, onNav
               className="bg-brand-700/60 hover:bg-brand-700/80 text-white text-xs font-semibold px-4 py-2.5 rounded-xl border border-white/20 transition flex items-center gap-1.5"
             >
               <Sparkles className="w-3.5 h-3.5" />
-              <span>Ask HER LIFE Guide</span>
+              <span>{t.ask_ai}</span>
             </button>
           </div>
         </div>
@@ -95,7 +104,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ currentUser, onNav
             <Moon className="w-5 h-5" />
           </div>
           <div>
-            <span className="text-[11px] text-warm-textMuted font-medium">Logged Sleep</span>
+            <span className="text-[11px] text-warm-textMuted font-medium">{t.metrics.sleep}</span>
             <div className="text-lg font-bold text-warm-textDark">{todayLog?.sleep_hours || 7.0} hrs</div>
           </div>
         </div>
@@ -106,7 +115,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ currentUser, onNav
             <Zap className="w-5 h-5" />
           </div>
           <div>
-            <span className="text-[11px] text-warm-textMuted font-medium">Stress Rating</span>
+            <span className="text-[11px] text-warm-textMuted font-medium">{t.metrics.stress}</span>
             <div className="text-lg font-bold text-warm-textDark">
               Level {todayLog?.stress_level_0_4 || 1}/4
             </div>
@@ -119,7 +128,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ currentUser, onNav
             <Droplets className="w-5 h-5" />
           </div>
           <div>
-            <span className="text-[11px] text-warm-textMuted font-medium">Hydration</span>
+            <span className="text-[11px] text-warm-textMuted font-medium">{t.metrics.hydration}</span>
             <div className="text-lg font-bold text-warm-textDark">{todayLog?.hydration_glasses || 6}/8 glasses</div>
           </div>
         </div>
@@ -130,9 +139,9 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ currentUser, onNav
             <HeartPulse className="w-5 h-5" />
           </div>
           <div>
-            <span className="text-[11px] text-warm-textMuted font-medium">Energy & Mood</span>
+            <span className="text-[11px] text-warm-textMuted font-medium">{t.metrics.energy}</span>
             <div className="text-lg font-bold text-warm-textDark">
-              {todayLog?.energy_score_0_4 && todayLog.energy_score_0_4 >= 2 ? 'Balanced' : 'Mild Fatigue'}
+              {todayLog?.energy_score_0_4 && todayLog.energy_score_0_4 >= 2 ? t.metrics.balanced : t.metrics.fatigue}
             </div>
           </div>
         </div>
@@ -151,23 +160,25 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ currentUser, onNav
           <div className="bg-gradient-to-br from-lavender-50 to-plum-50 rounded-3xl p-5 border border-lavender-200 shadow-soft">
             <div className="flex items-center gap-2 mb-2 text-plum-700 font-bold text-sm">
               <Sparkles className="w-4 h-4 text-plum-600" />
-              <span>Ask HER LIFE Guide</span>
+              <span>{isHinglish ? 'AI Saheli Se Poochein' : 'Ask HER LIFE Guide'}</span>
             </div>
             <p className="text-xs text-warm-textMuted leading-relaxed">
-              Have questions about cramps, irregular cycles, PCOS, or sleep rhythms? Our evidence-grounded assistant is here to help.
+              {isHinglish
+                ? 'Periods ka dard, cramps, PCOS ya neend ke baare mein koi bhi sawaal saral Hinglish mein poochein.'
+                : 'Have questions about cramps, irregular cycles, PCOS, or sleep rhythms? Our evidence-grounded assistant is here to help.'}
             </p>
             <div className="mt-4 space-y-2">
               <button
                 onClick={() => onNavigateTab('aiguide')}
                 className="w-full text-left bg-white/80 hover:bg-white text-xs text-warm-textDark font-medium p-2.5 rounded-xl border border-lavender-200 transition"
               >
-                "Why is my period irregular this month?"
+                {isHinglish ? '"Pet dard / cramps kam karne ke gharelu upay?"' : '"Why is my period irregular this month?"'}
               </button>
               <button
                 onClick={() => onNavigateTab('aiguide')}
                 className="w-full text-left bg-white/80 hover:bg-white text-xs text-warm-textDark font-medium p-2.5 rounded-xl border border-lavender-200 transition"
               >
-                "What symptoms warrant PCOS evaluation?"
+                {isHinglish ? '"PCOS ke mukhya lakshan kya hote hain?"' : '"What symptoms warrant PCOS evaluation?"'}
               </button>
             </div>
           </div>

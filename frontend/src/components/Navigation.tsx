@@ -10,6 +10,7 @@ import {
   FileText, 
   ShieldCheck 
 } from 'lucide-react';
+import { Language, translations } from '../services/i18n';
 
 export type NavTab = 
   | 'dashboard' 
@@ -25,21 +26,24 @@ export type NavTab =
 interface NavigationProps {
   activeTab: NavTab;
   onTabChange: (tab: NavTab) => void;
+  language: Language;
 }
 
-const NAV_ITEMS: { id: NavTab; label: string; icon: React.FC<{ className?: string }> }[] = [
-  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { id: 'calendar', label: 'Calendar & Cycles', icon: Calendar },
-  { id: 'checkin', label: 'Daily Check-In', icon: PlusCircle },
-  { id: 'pcos', label: 'PCOS Center', icon: HeartPulse },
-  { id: 'stress', label: 'Stress & Hormones', icon: Activity },
-  { id: 'lifestages', label: 'Life Stages', icon: Sparkles },
-  { id: 'aiguide', label: 'AI Guide', icon: Bot },
-  { id: 'reports', label: 'Health Timeline', icon: FileText },
-  { id: 'privacy', label: 'Privacy & Safety', icon: ShieldCheck },
-];
+export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange, language }) => {
+  const t = translations[language].nav;
 
-export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }) => {
+  const NAV_ITEMS: { id: NavTab; label: string; icon: React.FC<{ className?: string }> }[] = [
+    { id: 'dashboard', label: t.dashboard, icon: LayoutDashboard },
+    { id: 'calendar', label: t.calendar, icon: Calendar },
+    { id: 'checkin', label: t.checkin, icon: PlusCircle },
+    { id: 'pcos', label: t.pcos, icon: HeartPulse },
+    { id: 'stress', label: t.stress, icon: Activity },
+    { id: 'lifestages', label: t.lifestages, icon: Sparkles },
+    { id: 'aiguide', label: t.aiguide, icon: Bot },
+    { id: 'reports', label: t.reports, icon: FileText },
+    { id: 'privacy', label: t.privacy, icon: ShieldCheck },
+  ];
+
   return (
     <nav className="bg-white border-b border-warm-border sticky top-[57px] sm:top-[65px] z-30 shadow-xs">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { UserProfile } from '../types';
 import { api } from '../services/api';
-import { Bot, Send, Sparkles, BookOpen, ShieldAlert, CheckCircle2, User } from 'lucide-react';
+import { Bot, Send, Sparkles, BookOpen, User } from 'lucide-react';
+import { Language } from '../services/i18n';
 
 interface AIGuidePageProps {
   currentUser: UserProfile;
+  language?: Language;
 }
 
 interface ChatMessage {
@@ -16,7 +18,7 @@ interface ChatMessage {
   recommended_questions?: string[];
 }
 
-const SUGGESTED_PROMPTS = [
+const SUGGESTED_PROMPTS_EN = [
   "What are the four phases of the menstrual cycle?",
   "What are common symptoms and diagnostic criteria for PCOS?",
   "Can stress delay my period or ovulation?",
@@ -25,14 +27,28 @@ const SUGGESTED_PROMPTS = [
   "What questions should I ask my gynecologist about irregular cycles?"
 ];
 
-export const AIGuidePage: React.FC<AIGuidePageProps> = ({ currentUser }) => {
+const SUGGESTED_PROMPTS_HINGLISH = [
+  "Periods ke dard (cramps) ke gharelu upay kya hain?",
+  "PCOS ke mukhya lakshan aur test kya hote hain?",
+  "Tension ya stress se periods late kyun hote hain?",
+  "Pehla period shuru hone par kya dhyan rakhein?",
+  "Cycle ke 4 phases saral bhasha mein samjhaiye",
+  "Doctor se irregular periods ke baare mein kya poochein?"
+];
+
+export const AIGuidePage: React.FC<AIGuidePageProps> = ({ currentUser, language = 'en' }) => {
+  const isHinglish = language === 'hinglish';
+  const suggestedPrompts = isHinglish ? SUGGESTED_PROMPTS_HINGLISH : SUGGESTED_PROMPTS_EN;
+
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: 'welcome_1',
       role: 'assistant',
-      content: `Hello ${currentUser.full_name.split(' ')[0]}! I am HER LIFE Guide, your evidence-based health education companion. I am grounded in clinical guidelines from ACOG, Monash University, and the Menopause Society.\n\nHow can I support your hormonal or menstrual health journey today?`,
+      content: isHinglish
+        ? `Namaste ${currentUser.full_name.split(' ')[0]} ji! Main aapki AI Saheli (HER LIFE Guide) hoon. Main ACOG aur international clinical guidelines ke aadhar par saral Hinglish mein aapki madad ke liye taiyar hoon.\n\nPeriods, dard, PCOS, neend ya hormones se juda koi bhi sawaal bejhi-jhak poochein!`
+        : `Hello ${currentUser.full_name.split(' ')[0]}! I am HER LIFE Guide, your evidence-based health education companion. I am grounded in clinical guidelines from ACOG, Monash University, and the Menopause Society.\n\nHow can I support your hormonal or menstrual health journey today?`,
       sources: ["ACOG Women's Health Knowledge Base", "Monash University PCOS Guidelines"],
-      recommended_questions: SUGGESTED_PROMPTS.slice(0, 3)
+      recommended_questions: suggestedPrompts.slice(0, 3)
     }
   ]);
   const [input, setInput] = useState('');
@@ -81,24 +97,26 @@ export const AIGuidePage: React.FC<AIGuidePageProps> = ({ currentUser }) => {
         <div>
           <div className="flex items-center gap-2 text-plum-700 text-xs font-semibold uppercase tracking-wider">
             <Bot className="w-4 h-4 text-plum-600" />
-            <span>HER LIFE Guide</span>
+            <span>{isHinglish ? 'AI Saheli Guide' : 'HER LIFE Guide'}</span>
           </div>
           <h2 className="text-2xl font-bold font-serif text-warm-textDark mt-1">
-            Evidence-Based AI Health Education Assistant
+            {isHinglish ? 'Saral Bhasha Mein AI Health Education' : 'Evidence-Based AI Health Education Assistant'}
           </h2>
           <p className="text-xs text-warm-textMuted mt-1">
-            Clinically vetted reproductive health knowledge with citations. Never diagnoses, prescribes, or promises outcomes.
+            {isHinglish 
+              ? 'ACOG aur clinical sources par aadharit certified gyan. Yeh koi bimari diagnose ya davai prescribe nahi karta.'
+              : 'Clinically vetted reproductive health knowledge with citations. Never diagnoses, prescribes, or promises outcomes.'}
           </p>
         </div>
         <div className="flex items-center gap-1.5 bg-plum-50 text-plum-800 px-3 py-1.5 rounded-full text-xs font-semibold border border-plum-200 shrink-0">
           <BookOpen className="w-3.5 h-3.5 text-plum-600" />
-          <span>Vetted Clinical Sources</span>
+          <span>{isHinglish ? 'Vetted Clinical Jaankari' : 'Vetted Clinical Sources'}</span>
         </div>
       </div>
 
       {/* Suggested Prompt Chips */}
       <div className="flex flex-wrap gap-2">
-        {SUGGESTED_PROMPTS.map((prompt, idx) => (
+        {suggestedPrompts.map((prompt, idx) => (
           <button
             key={idx}
             onClick={() => handleSend(prompt)}
@@ -134,7 +152,9 @@ export const AIGuidePage: React.FC<AIGuidePageProps> = ({ currentUser }) => {
                   {/* Sources Citations */}
                   {m.sources && m.sources.length > 0 && (
                     <div className="pt-2 border-t border-warm-border/60 text-[10px] space-y-1 text-warm-textMuted">
-                      <span className="font-bold uppercase tracking-wider block text-plum-700">Clinical References:</span>
+                      <span className="font-bold uppercase tracking-wider block text-plum-700">
+                        {isHinglish ? 'Clinical References (Vetted Sources):' : 'Clinical References:'}
+                      </span>
                       {m.sources.map((s, idx) => (
                         <div key={idx} className="flex items-start gap-1">
                           <span>•</span>
@@ -180,7 +200,9 @@ export const AIGuidePage: React.FC<AIGuidePageProps> = ({ currentUser }) => {
               <div className="w-8 h-8 rounded-full bg-brand-50 text-brand-600 flex items-center justify-center shrink-0 animate-pulse">
                 <Sparkles className="w-4 h-4" />
               </div>
-              <span>HER LIFE Guide is reviewing vetted health sources...</span>
+              <span>
+                {isHinglish ? 'AI Saheli jaankari check kar rahi hai...' : 'HER LIFE Guide is reviewing vetted health sources...'}
+              </span>
             </div>
           )}
 
@@ -198,7 +220,9 @@ export const AIGuidePage: React.FC<AIGuidePageProps> = ({ currentUser }) => {
           >
             <input
               type="text"
-              placeholder="Ask about cycles, PMS, ovulation, symptoms, PCOS, or menopause..."
+              placeholder={isHinglish 
+                ? "Periods, pet dard, cramps, PCOS, neend ya tension ke baare mein poochein..."
+                : "Ask about cycles, PMS, ovulation, symptoms, PCOS, or menopause..."}
               value={input}
               onChange={(e) => setInput(e.target.value)}
               className="flex-1 text-xs p-3 rounded-2xl border border-warm-border focus:ring-2 focus:ring-brand-400 focus:outline-none"
@@ -212,8 +236,14 @@ export const AIGuidePage: React.FC<AIGuidePageProps> = ({ currentUser }) => {
             </button>
           </form>
           <div className="flex items-center justify-between text-[10px] text-warm-textMuted mt-2 px-1">
-            <span>Educational guidance only • Not medical advice or diagnosis</span>
-            <span>Emergency? Call local medical services immediately</span>
+            <span>
+              {isHinglish 
+                ? 'Educational jaankari ke liye hai • Doctor ki jagah nahi le sakta'
+                : 'Educational guidance only • Not medical advice or diagnosis'}
+            </span>
+            <span>
+              {isHinglish ? 'Emergency mein turant hospital call karein' : 'Emergency? Call local medical services immediately'}
+            </span>
           </div>
         </div>
       </div>
