@@ -45,7 +45,7 @@ export const AIGuidePage: React.FC<AIGuidePageProps> = ({ currentUser, language 
       id: 'welcome_1',
       role: 'assistant',
       content: isHinglish
-        ? `Namaste ${currentUser.full_name.split(' ')[0]} ji! Main aapki AI Saheli (HER LIFE Guide) hoon. Main ACOG aur international clinical guidelines ke aadhar par saral Hinglish mein aapki madad ke liye taiyar hoon.\n\nPeriods, dard, PCOS, neend ya hormones se juda koi bhi sawaal bejhi-jhak poochein!`
+        ? `Hello ${currentUser.full_name.split(' ')[0]}! Main aapki AI Saheli (HER LIFE Guide) hoon. Main ACOG aur international clinical guidelines ke aadhar par saral Hinglish mein aapki madad ke liye taiyar hoon.\n\nPeriods, dard, PCOS, neend ya hormones se juda koi bhi sawaal bejhi-jhak poochein!`
         : `Hello ${currentUser.full_name.split(' ')[0]}! I am HER LIFE Guide, your evidence-based health education companion. I am grounded in clinical guidelines from ACOG, Monash University, and the Menopause Society.\n\nHow can I support your hormonal or menstrual health journey today?`,
       sources: ["ACOG Women's Health Knowledge Base", "Monash University PCOS Guidelines"],
       recommended_questions: suggestedPrompts.slice(0, 3)

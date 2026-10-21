@@ -4,6 +4,7 @@ import { api } from '../services/api';
 import { PredictionCard } from '../components/PredictionCard';
 import { SymptomForecastCard } from '../components/SymptomForecastCard';
 import { DailyGuidanceCard } from '../components/DailyGuidanceCard';
+import { DailyRewardCard } from '../components/DailyRewardCard';
 import { Moon, Zap, Droplets, Sparkles, ArrowRight, HeartPulse } from 'lucide-react';
 import { Language, translations } from '../services/i18n';
 
@@ -61,6 +62,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ currentUser, onNav
     );
   }
 
+  const firstName = currentUser.full_name.split(' ')[0];
+
   return (
     <div className="space-y-6">
       {/* Welcome Banner */}
@@ -70,7 +73,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ currentUser, onNav
             {isHinglish ? 'Aapka Swagat Hai' : 'Welcome to HER LIFE'}
           </span>
           <h2 className="text-2xl sm:text-3xl font-serif font-bold mt-1">
-            {isHinglish ? `Namaste, ${currentUser.full_name.split(' ')[0]}` : `Hello, ${currentUser.full_name.split(' ')[0]}`}
+            Hello, {firstName}
           </h2>
           <p className="text-sm text-brand-100 mt-2 leading-relaxed">
             {isHinglish 
@@ -146,6 +149,15 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ currentUser, onNav
           </div>
         </div>
       </div>
+
+      {/* End of Day Gesture: Verbal Word Reward / Consoling Motivation Card */}
+      <DailyRewardCard
+        userName={currentUser.full_name}
+        language={language}
+        sleepHours={todayLog?.sleep_hours || 7.0}
+        hydrationGlasses={todayLog?.hydration_glasses || 6}
+        stressLevel={todayLog?.stress_level_0_4 || 1}
+      />
 
       {/* Main Prediction & Symptom Forecasting Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
