@@ -6,6 +6,7 @@ import {
   HeartPulse, 
   Activity, 
   Sparkles, 
+  BookOpen,
   Bot, 
   FileText, 
   ShieldCheck 
@@ -19,6 +20,7 @@ export type NavTab =
   | 'pcos' 
   | 'stress' 
   | 'lifestages' 
+  | 'firstperiod'
   | 'aiguide' 
   | 'reports' 
   | 'privacy';
@@ -39,6 +41,7 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange, 
     { id: 'pcos', label: t.pcos, icon: HeartPulse },
     { id: 'stress', label: t.stress, icon: Activity },
     { id: 'lifestages', label: t.lifestages, icon: Sparkles },
+    { id: 'firstperiod', label: t.firstperiod, icon: BookOpen },
     { id: 'aiguide', label: t.aiguide, icon: Bot },
     { id: 'reports', label: t.reports, icon: FileText },
     { id: 'privacy', label: t.privacy, icon: ShieldCheck },

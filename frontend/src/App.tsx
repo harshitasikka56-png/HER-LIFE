@@ -14,6 +14,7 @@ import { LifeStagesPage } from './pages/LifeStagesPage';
 import { AIGuidePage } from './pages/AIGuidePage';
 import { ReportsPage } from './pages/ReportsPage';
 import { PrivacyPage } from './pages/PrivacyPage';
+import { FirstPeriodEducationSlide } from './components/FirstPeriodEducationSlide';
 import { Heart, ShieldCheck } from 'lucide-react';
 import { Language, translations } from './services/i18n';
 
@@ -133,7 +134,15 @@ export function App() {
           <StressPage currentUser={currentUser} />
         )}
         {activeTab === 'lifestages' && (
-          <LifeStagesPage currentUser={currentUser} onUpdateStage={handleUpdateStage} />
+          <LifeStagesPage currentUser={currentUser} onUpdateStage={handleUpdateStage} language={language} />
+        )}
+        {activeTab === 'firstperiod' && (
+          <div className="space-y-6">
+            <FirstPeriodEducationSlide
+              language={language}
+              defaultExpanded={true}
+            />
+          </div>
         )}
         {activeTab === 'aiguide' && (
           <AIGuidePage currentUser={currentUser} language={language} />

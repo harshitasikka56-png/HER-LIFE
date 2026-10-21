@@ -5,6 +5,7 @@ import { PredictionCard } from '../components/PredictionCard';
 import { SymptomForecastCard } from '../components/SymptomForecastCard';
 import { DailyGuidanceCard } from '../components/DailyGuidanceCard';
 import { DailyRewardCard } from '../components/DailyRewardCard';
+import { FirstPeriodEducationSlide } from '../components/FirstPeriodEducationSlide';
 import { Moon, Zap, Droplets, Sparkles, ArrowRight, HeartPulse } from 'lucide-react';
 import { Language, translations } from '../services/i18n';
 
@@ -157,6 +158,12 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ currentUser, onNav
         sleepHours={todayLog?.sleep_hours || 7.0}
         hydrationGlasses={todayLog?.hydration_glasses || 6}
         stressLevel={todayLog?.stress_level_0_4 || 1}
+      />
+
+      {/* Beginner Education Slide Deck: Zero-knowledge full education for girls new to cycles */}
+      <FirstPeriodEducationSlide
+        language={language}
+        defaultExpanded={currentUser.life_stage === 'teen_menarche'}
       />
 
       {/* Main Prediction & Symptom Forecasting Grid */}

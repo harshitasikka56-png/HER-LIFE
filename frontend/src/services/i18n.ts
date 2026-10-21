@@ -22,6 +22,7 @@ export const translations = {
       pcos: "PCOS Center",
       stress: "Stress & Hormones",
       lifestages: "Life Stages",
+      firstperiod: "First Period Guide 🌸",
       aiguide: "AI Guide",
       reports: "Health Timeline",
       privacy: "Privacy & Safety"
@@ -77,6 +78,7 @@ export const translations = {
       pcos: "PCOS Awareness",
       stress: "Stress Aur Neend",
       lifestages: "Life Stage Hub",
+      firstperiod: "Pehla Period Guide 🌸",
       aiguide: "AI Saheli Guide",
       reports: "Doctor Report",
       privacy: "Privacy Aur Suraksha"

@@ -1,10 +1,13 @@
 import React from 'react';
 import { UserProfile, LifeStage } from '../types';
 import { Sparkles, Check, ArrowRight, Heart, BookOpen, Baby, ShieldAlert } from 'lucide-react';
+import { FirstPeriodEducationSlide } from '../components/FirstPeriodEducationSlide';
+import { Language } from '../services/i18n';
 
 interface LifeStagesPageProps {
   currentUser: UserProfile;
   onUpdateStage: (stage: LifeStage) => void;
+  language?: Language;
 }
 
 const STAGES = [
@@ -80,7 +83,7 @@ const STAGES = [
   }
 ];
 
-export const LifeStagesPage: React.FC<LifeStagesPageProps> = ({ currentUser, onUpdateStage }) => {
+export const LifeStagesPage: React.FC<LifeStagesPageProps> = ({ currentUser, onUpdateStage, language }) => {
   return (
     <div className="space-y-6">
       {/* Banner */}
@@ -95,6 +98,12 @@ export const LifeStagesPage: React.FC<LifeStagesPageProps> = ({ currentUser, onU
           HER LIFE adapts its algorithms, daily guidance, reminders, and symptom forms to your actual reproductive circumstances. You can switch stages at any time as your journey evolves.
         </p>
       </div>
+
+      {/* First Period Education Slide (Interactive zero-knowledge beginner guide) */}
+      <FirstPeriodEducationSlide
+        language={language || 'hinglish'}
+        defaultExpanded={currentUser.life_stage === 'teen_menarche'}
+      />
 
       {/* Grid of 5 Life Stages */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
