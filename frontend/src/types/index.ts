@@ -8,6 +8,8 @@ export interface UserProfile {
   life_stage: LifeStage;
   cycle_regularity: string;
   usual_cycle_length: number;
+  usual_bleeding_duration_days?: number | null;
+  preferred_language?: string;
   consent_status: boolean;
   is_demo: boolean;
   created_at: string;

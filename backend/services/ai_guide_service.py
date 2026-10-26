@@ -182,22 +182,23 @@ DEFAULT_RESPONSE = {
         "World Health Organization (WHO) Reproductive Health"
     ],
     "recommended_questions": [
-        "Periods ke dard ke gharelu upay?",
-        "PCOS ke mukhya lakshan kya hain?",
-        "Cycle ke 4 phases kya hote hain?",
-        "Stress se periods late kyun hote hain?"
+        "What are the four phases of the menstrual cycle?",
+        "What are common symptoms and diagnostic criteria for PCOS?",
+        "How does stress impact menstrual cycle regularity?",
+        "When should I consult a doctor for severe cramps?"
     ]
 }
 
 
 def is_hinglish_text(text: str) -> bool:
     hinglish_markers = [
-        "dard", "kya", "kyun", "kaise", "hota", "hai", "karein", "batao", "pet",
-        "kamar", "neend", "garmi", "paani", "gharelu", "upay", "aata", "saheli",
-        "baal", "chehra", "theek", "din", "pehle", "baar"
+        r"\bdard\b", r"\bkya\b", r"\bkyun\b", r"\bkaise\b", r"\bhota\b", r"\bhai\b",
+        r"\bkarein\b", r"\bbatao\b", r"\bpet dard\b", r"\bkamar dard\b", r"\bneend\b",
+        r"\bpaani\b", r"\bgharelu\b", r"\bupay\b", r"\bsaheli\b", r"\btheek\b",
+        r"\bpehle\b", r"\bkripya\b", r"\bjaankari\b"
     ]
     t = text.lower()
-    return any(m in t for m in hinglish_markers)
+    return any(re.search(m, t) for m in hinglish_markers)
 
 
 def answer_health_query(user: Any, query: str) -> Dict[str, Any]:

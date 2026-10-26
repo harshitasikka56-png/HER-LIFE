@@ -1,6 +1,6 @@
 import React from 'react';
 import { PeriodPrediction } from '../types';
-import { Calendar, AlertCircle, Info, Sparkles, CheckCircle2 } from 'lucide-react';
+import { Calendar, AlertCircle, Info, CheckCircle2, ShieldCheck } from 'lucide-react';
 
 interface PredictionCardProps {
   prediction: PeriodPrediction | null;
@@ -53,7 +53,7 @@ export const PredictionCard: React.FC<PredictionCardProps> = ({ prediction, life
         {/* Confidence Badge */}
         <div className="text-right">
           <span className={`inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full border font-semibold ${confidenceBadgeColor}`}>
-            <Sparkles className="w-3 h-3" />
+            <ShieldCheck className="w-3.5 h-3.5" />
             {prediction.confidence} Confidence
           </span>
           {prediction.uncertainty_range && (

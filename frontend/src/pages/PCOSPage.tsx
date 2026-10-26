@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { UserProfile, PCOSRecord } from '../types';
 import { api } from '../services/api';
-import { HeartPulse, Plus, CheckCircle2, AlertTriangle, FileText, Download, ShieldAlert, Sparkles } from 'lucide-react';
+import { HeartPulse, Plus, CheckCircle2, AlertTriangle, FileText, Download, ShieldAlert } from 'lucide-react';
+import { useBackHandler } from '../services/backNavigation';
 
 interface PCOSPageProps {
   currentUser: UserProfile;
@@ -12,6 +13,19 @@ export const PCOSPage: React.FC<PCOSPageProps> = ({ currentUser }) => {
   const [checklist, setChecklist] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [showLogModal, setShowLogModal] = useState(false);
+
+  useBackHandler(
+    'pcos_log_modal',
+    80,
+    () => {
+      if (showLogModal) {
+        setShowLogModal(false);
+        return true;
+      }
+      return false;
+    },
+    showLogModal
+  );
   const [saving, setSaving] = useState(false);
 
   const [form, setForm] = useState({
@@ -61,15 +75,15 @@ export const PCOSPage: React.FC<PCOSPageProps> = ({ currentUser }) => {
   const SEVERITY_NAMES = ['None', 'Mild', 'Moderate', 'Severe'];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Title & Action */}
-      <div className="bg-white p-6 rounded-3xl border border-warm-border shadow-soft flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="bg-white p-4 sm:p-6 rounded-3xl border border-warm-border shadow-soft flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 text-rose-600 text-xs font-semibold uppercase tracking-wider">
             <HeartPulse className="w-4 h-4" />
             <span>PCOS Awareness Center</span>
           </div>
-          <h2 className="text-2xl font-bold font-serif text-warm-textDark mt-1">
+          <h2 className="text-xl sm:text-2xl font-bold font-serif text-warm-textDark mt-1">
             Symptom Pattern Monitoring & Clinical Preparation
           </h2>
           <p className="text-xs text-warm-textMuted mt-1">
@@ -78,7 +92,7 @@ export const PCOSPage: React.FC<PCOSPageProps> = ({ currentUser }) => {
         </div>
         <button
           onClick={() => setShowLogModal(true)}
-          className="bg-brand-500 hover:bg-brand-600 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-soft transition flex items-center justify-center gap-1.5 shrink-0"
+          className="w-full sm:w-auto bg-brand-500 hover:bg-brand-600 text-white text-xs font-bold px-4 py-3 sm:py-2.5 rounded-xl shadow-soft transition flex items-center justify-center gap-1.5 shrink-0 min-h-[44px] active:scale-98"
         >
           <Plus className="w-4 h-4" />
           <span>Log PCOS-Related Symptoms</span>
@@ -100,10 +114,10 @@ export const PCOSPage: React.FC<PCOSPageProps> = ({ currentUser }) => {
       </div>
 
       {/* Checklist & Questions for Gynecologist */}
-      <div className="bg-white p-6 rounded-3xl border border-warm-border shadow-soft space-y-4">
-        <div className="flex items-center justify-between">
+      <div className="bg-white p-4 sm:p-6 rounded-3xl border border-warm-border shadow-soft space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-2">
-            <span className="p-2 bg-brand-50 text-brand-600 rounded-xl">
+            <span className="p-2 bg-brand-50 text-brand-600 rounded-xl shrink-0">
               <FileText className="w-5 h-5" />
             </span>
             <div>
@@ -113,7 +127,7 @@ export const PCOSPage: React.FC<PCOSPageProps> = ({ currentUser }) => {
           </div>
           <button
             onClick={() => window.print()}
-            className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-xl border border-warm-border hover:bg-warm-cardMuted text-warm-textDark transition"
+            className="w-full sm:w-auto flex items-center justify-center gap-1.5 text-xs font-semibold px-3.5 py-2.5 rounded-xl border border-warm-border hover:bg-warm-cardMuted text-warm-textDark transition min-h-[40px] active:scale-98"
           >
             <Download className="w-3.5 h-3.5" />
             <span>Print / Save Checklist</span>
@@ -133,56 +147,98 @@ export const PCOSPage: React.FC<PCOSPageProps> = ({ currentUser }) => {
       </div>
 
       {/* Logged PCOS History */}
-      <div className="bg-white p-6 rounded-3xl border border-warm-border shadow-soft space-y-4">
+      <div className="bg-white p-4 sm:p-6 rounded-3xl border border-warm-border shadow-soft space-y-4">
         <h3 className="text-base font-bold text-warm-textDark">Logged Symptom Records</h3>
         {logs.length === 0 ? (
           <p className="text-xs text-warm-textMuted">No PCOS-related symptom checks recorded yet.</p>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead>
-                <tr className="border-b border-warm-border text-warm-textMuted font-semibold">
-                  <th className="py-2.5 px-3">Date</th>
-                  <th className="py-2.5 px-3">Acne</th>
-                  <th className="py-2.5 px-3">Hirsutism</th>
-                  <th className="py-2.5 px-3">Hair Thinning</th>
-                  <th className="py-2.5 px-3">Clinician Confirmed</th>
-                  <th className="py-2.5 px-3">Notes</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-warm-border/60">
-                {logs.map((item) => (
-                  <tr key={item.id} className="hover:bg-warm-cardMuted/40">
-                    <td className="py-3 px-3 font-semibold text-warm-textDark">
+          <>
+            {/* Mobile Card List (< md screens) */}
+            <div className="space-y-2.5 md:hidden">
+              {logs.map((item) => (
+                <div key={item.id} className="p-3.5 bg-warm-cardMuted/50 rounded-2xl border border-warm-border/70 space-y-2 text-xs">
+                  <div className="flex justify-between items-center">
+                    <span className="font-bold text-warm-textDark">
                       {new Date(item.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                    </td>
-                    <td className="py-3 px-3">{SEVERITY_NAMES[item.acne_severity_0_3]}</td>
-                    <td className="py-3 px-3">{SEVERITY_NAMES[item.hirsutism_severity_0_3]}</td>
-                    <td className="py-3 px-3">{SEVERITY_NAMES[item.hair_thinning_severity_0_3]}</td>
-                    <td className="py-3 px-3">
-                      {item.clinician_confirmed_pcos ? (
-                        <span className="bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full text-[10px] font-bold border border-emerald-200">
-                          Yes (Clinician Confirmed)
-                        </span>
-                      ) : (
-                        <span className="text-warm-textMuted text-[11px]">Unconfirmed</span>
-                      )}
-                    </td>
-                    <td className="py-3 px-3 text-warm-textMuted max-w-xs truncate">
-                      {item.clinician_notes || item.weight_change_notes || '—'}
-                    </td>
+                    </span>
+                    {item.clinician_confirmed_pcos ? (
+                      <span className="bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full text-[10px] font-bold border border-emerald-200">
+                        Clinician Confirmed
+                      </span>
+                    ) : (
+                      <span className="text-warm-textMuted text-[10px]">Unconfirmed</span>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-3 gap-1.5 pt-1 text-[11px]">
+                    <div className="bg-white p-2 rounded-xl border border-warm-border/60 text-center">
+                      <span className="text-warm-textMuted block text-[10px]">Acne</span>
+                      <span className="font-bold text-warm-textDark">{SEVERITY_NAMES[item.acne_severity_0_3]}</span>
+                    </div>
+                    <div className="bg-white p-2 rounded-xl border border-warm-border/60 text-center">
+                      <span className="text-warm-textMuted block text-[10px]">Hirsutism</span>
+                      <span className="font-bold text-warm-textDark">{SEVERITY_NAMES[item.hirsutism_severity_0_3]}</span>
+                    </div>
+                    <div className="bg-white p-2 rounded-xl border border-warm-border/60 text-center">
+                      <span className="text-warm-textMuted block text-[10px]">Hair Thinning</span>
+                      <span className="font-bold text-warm-textDark">{SEVERITY_NAMES[item.hair_thinning_severity_0_3]}</span>
+                    </div>
+                  </div>
+                  {(item.clinician_notes || item.weight_change_notes) && (
+                    <p className="text-[11px] text-warm-textMuted italic bg-white/70 p-2 rounded-xl border border-warm-border/50">
+                      "{item.clinician_notes || item.weight_change_notes}"
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {/* Desktop Table View (>= md screens) */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead>
+                  <tr className="border-b border-warm-border text-warm-textMuted font-semibold">
+                    <th className="py-2.5 px-3">Date</th>
+                    <th className="py-2.5 px-3">Acne</th>
+                    <th className="py-2.5 px-3">Hirsutism</th>
+                    <th className="py-2.5 px-3">Hair Thinning</th>
+                    <th className="py-2.5 px-3">Clinician Confirmed</th>
+                    <th className="py-2.5 px-3">Notes</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-warm-border/60">
+                  {logs.map((item) => (
+                    <tr key={item.id} className="hover:bg-warm-cardMuted/40">
+                      <td className="py-3 px-3 font-semibold text-warm-textDark">
+                        {new Date(item.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                      </td>
+                      <td className="py-3 px-3">{SEVERITY_NAMES[item.acne_severity_0_3]}</td>
+                      <td className="py-3 px-3">{SEVERITY_NAMES[item.hirsutism_severity_0_3]}</td>
+                      <td className="py-3 px-3">{SEVERITY_NAMES[item.hair_thinning_severity_0_3]}</td>
+                      <td className="py-3 px-3">
+                        {item.clinician_confirmed_pcos ? (
+                          <span className="bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full text-[10px] font-bold border border-emerald-200">
+                            Yes (Clinician Confirmed)
+                          </span>
+                        ) : (
+                          <span className="text-warm-textMuted text-[11px]">Unconfirmed</span>
+                        )}
+                      </td>
+                      <td className="py-3 px-3 text-warm-textMuted max-w-xs truncate">
+                        {item.clinician_notes || item.weight_change_notes || '—'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </div>
 
       {/* Log Modal */}
       {showLogModal && (
-        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl p-6 max-w-md w-full border border-warm-border shadow-soft-lg space-y-4 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4">
+          <div className="bg-white rounded-3xl p-4 sm:p-6 max-w-md w-full border border-warm-border shadow-soft-lg space-y-4 max-h-[90vh] overflow-y-auto">
             <h3 className="text-lg font-bold text-warm-textDark font-serif">Record PCOS-Related Symptoms</h3>
             <form onSubmit={handleAddLog} className="space-y-4">
               <div>
@@ -193,7 +249,7 @@ export const PCOSPage: React.FC<PCOSPageProps> = ({ currentUser }) => {
                       type="button"
                       key={lvl}
                       onClick={() => setForm({ ...form, acne_severity_0_3: lvl })}
-                      className={`py-1.5 rounded-xl text-xs font-semibold border transition ${
+                      className={`py-2 rounded-xl text-xs font-semibold border transition active:scale-95 min-h-[38px] ${
                         form.acne_severity_0_3 === lvl ? 'bg-brand-500 text-white' : 'bg-warm-cardMuted text-warm-textDark'
                       }`}
                     >
@@ -211,7 +267,7 @@ export const PCOSPage: React.FC<PCOSPageProps> = ({ currentUser }) => {
                       type="button"
                       key={lvl}
                       onClick={() => setForm({ ...form, hirsutism_severity_0_3: lvl })}
-                      className={`py-1.5 rounded-xl text-xs font-semibold border transition ${
+                      className={`py-2 rounded-xl text-xs font-semibold border transition active:scale-95 min-h-[38px] ${
                         form.hirsutism_severity_0_3 === lvl ? 'bg-brand-500 text-white' : 'bg-warm-cardMuted text-warm-textDark'
                       }`}
                     >
@@ -229,7 +285,7 @@ export const PCOSPage: React.FC<PCOSPageProps> = ({ currentUser }) => {
                       type="button"
                       key={lvl}
                       onClick={() => setForm({ ...form, hair_thinning_severity_0_3: lvl })}
-                      className={`py-1.5 rounded-xl text-xs font-semibold border transition ${
+                      className={`py-2 rounded-xl text-xs font-semibold border transition active:scale-95 min-h-[38px] ${
                         form.hair_thinning_severity_0_3 === lvl ? 'bg-brand-500 text-white' : 'bg-warm-cardMuted text-warm-textDark'
                       }`}
                     >
@@ -276,18 +332,18 @@ export const PCOSPage: React.FC<PCOSPageProps> = ({ currentUser }) => {
                 </div>
               )}
 
-              <div className="flex justify-end gap-2 pt-3 border-t border-warm-border">
+              <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pt-3 border-t border-warm-border">
                 <button
                   type="button"
                   onClick={() => setShowLogModal(false)}
-                  className="px-4 py-2 text-xs font-semibold text-warm-textMuted"
+                  className="w-full sm:w-auto px-4 py-2.5 text-xs font-semibold text-warm-textMuted rounded-xl border border-warm-border sm:border-0 hover:bg-warm-cardMuted text-center min-h-[40px]"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={saving}
-                  className="px-4 py-2 text-xs font-bold bg-brand-500 text-white rounded-xl shadow-soft hover:bg-brand-600 transition"
+                  className="w-full sm:w-auto px-5 py-2.5 text-xs font-bold bg-brand-500 text-white rounded-xl shadow-soft hover:bg-brand-600 transition min-h-[44px] active:scale-98"
                 >
                   {saving ? 'Saving...' : 'Save Entry'}
                 </button>

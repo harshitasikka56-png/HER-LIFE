@@ -1,6 +1,6 @@
 import React from 'react';
 import { UserProfile, LifeStage } from '../types';
-import { Sparkles, Check, ArrowRight, Heart, BookOpen, Baby, ShieldAlert } from 'lucide-react';
+import { Flower2, Check, ArrowRight, Heart, BookOpen, Baby, ShieldAlert } from 'lucide-react';
 import { FirstPeriodEducationSlide } from '../components/FirstPeriodEducationSlide';
 import { Language } from '../services/i18n';
 
@@ -101,7 +101,7 @@ export const LifeStagesPage: React.FC<LifeStagesPageProps> = ({ currentUser, onU
 
       {/* First Period Education Slide (Interactive zero-knowledge beginner guide) */}
       <FirstPeriodEducationSlide
-        language={language || 'hinglish'}
+        language={language || 'en'}
         defaultExpanded={currentUser.life_stage === 'teen_menarche'}
       />
 

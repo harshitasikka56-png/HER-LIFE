@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { UserProfile } from '../types';
 import { api } from '../services/api';
-import { FileText, Download, Printer, ShieldAlert, Sparkles, Calendar, Activity } from 'lucide-react';
+import { FileText, Printer, ShieldAlert, Calendar, Activity } from 'lucide-react';
 
 interface ReportsPageProps {
   currentUser: UserProfile;
@@ -26,10 +26,6 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({ currentUser }) => {
     load();
   }, [currentUser]);
 
-  function handleExportCSV() {
-    window.open(api.getExportCSVUrl(currentUser.id), '_blank');
-  }
-
   if (loading) {
     return (
       <div className="py-20 flex justify-center text-xs text-warm-textMuted">
@@ -39,35 +35,28 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({ currentUser }) => {
   }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
+    <div className="max-w-4xl mx-auto space-y-4 sm:space-y-6">
       {/* Top Banner & Export Actions */}
-      <div className="bg-white p-6 rounded-3xl border border-warm-border shadow-soft flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="bg-white p-4 sm:p-6 rounded-3xl border border-warm-border shadow-soft flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 text-brand-600 text-xs font-semibold uppercase tracking-wider">
             <FileText className="w-4 h-4" />
             <span>Longitudinal Health Timeline</span>
           </div>
-          <h2 className="text-2xl font-bold font-serif text-warm-textDark mt-1">
+          <h2 className="text-xl sm:text-2xl font-bold font-serif text-warm-textDark mt-1">
             Clinical Summary & Appointment Report
           </h2>
           <p className="text-xs text-warm-textMuted mt-1">
             Multi-cycle synthesis combining recorded bleeding, symptom frequencies, and lifestyle patterns.
           </p>
         </div>
-        <div className="flex gap-2 shrink-0">
+        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto shrink-0">
           <button
             onClick={() => window.print()}
-            className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded-xl border border-warm-border hover:bg-warm-cardMuted text-warm-textDark transition"
+            className="w-full sm:w-auto flex items-center justify-center gap-1.5 px-4 py-2.5 text-xs font-semibold rounded-xl border border-warm-border hover:bg-warm-cardMuted text-warm-textDark transition min-h-[42px] active:scale-98"
           >
             <Printer className="w-4 h-4" />
             <span>Print Report</span>
-          </button>
-          <button
-            onClick={handleExportCSV}
-            className="flex items-center gap-1.5 px-4 py-2 text-xs font-bold bg-brand-500 hover:bg-brand-600 text-white rounded-xl shadow-soft transition"
-          >
-            <Download className="w-4 h-4" />
-            <span>Export CSV</span>
           </button>
         </div>
       </div>

@@ -1,11 +1,12 @@
 import React from 'react';
 import { 
   LayoutDashboard, 
+  ShoppingBag,
+  Activity,
   Calendar, 
   PlusCircle, 
   HeartPulse, 
-  Activity, 
-  Sparkles, 
+  Flower2, 
   BookOpen,
   Bot, 
   FileText, 
@@ -15,6 +16,8 @@ import { Language, translations } from '../services/i18n';
 
 export type NavTab = 
   | 'dashboard' 
+  | 'hercare'
+  | 'hermove'
   | 'calendar' 
   | 'checkin' 
   | 'pcos' 
@@ -34,13 +37,14 @@ interface NavigationProps {
 export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange, language }) => {
   const t = translations[language].nav;
 
-  const NAV_ITEMS: { id: NavTab; label: string; icon: React.FC<{ className?: string }> }[] = [
+  const NAV_ITEMS: { id: NavTab; label: string; icon: React.FC<{ className?: string }>; badge?: string }[] = [
     { id: 'dashboard', label: t.dashboard, icon: LayoutDashboard },
+    { id: 'hercare', label: t.hercare, icon: ShoppingBag, badge: 'Care' },
+    { id: 'hermove', label: t.hermove, icon: Activity, badge: 'Fitness' },
     { id: 'calendar', label: t.calendar, icon: Calendar },
     { id: 'checkin', label: t.checkin, icon: PlusCircle },
     { id: 'pcos', label: t.pcos, icon: HeartPulse },
-    { id: 'stress', label: t.stress, icon: Activity },
-    { id: 'lifestages', label: t.lifestages, icon: Sparkles },
+    { id: 'lifestages', label: t.lifestages, icon: Flower2 },
     { id: 'firstperiod', label: t.firstperiod, icon: BookOpen },
     { id: 'aiguide', label: t.aiguide, icon: Bot },
     { id: 'reports', label: t.reports, icon: FileText },
@@ -48,7 +52,7 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange, 
   ];
 
   return (
-    <nav className="bg-white border-b border-warm-border sticky top-[57px] sm:top-[65px] z-30 shadow-xs">
+    <nav className="hidden md:block bg-white border-b border-warm-border sticky top-16 z-30 shadow-xs">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex space-x-1 sm:space-x-2 overflow-x-auto py-2 no-scrollbar">
           {NAV_ITEMS.map((item) => {
@@ -66,6 +70,13 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange, 
               >
                 <Icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-warm-textMuted'}`} />
                 <span>{item.label}</span>
+                {item.badge && (
+                  <span className={`text-[9px] font-extrabold uppercase px-1.5 py-0.2 rounded-full ${
+                    isActive ? 'bg-white/20 text-white' : 'bg-rose-100 text-rose-600'
+                  }`}>
+                    {item.badge}
+                  </span>
+                )}
               </button>
             );
           })}

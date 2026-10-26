@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Bell, ShieldCheck, Eye, EyeOff, Check, Sparkles, X, Clock, Calendar, Droplets } from 'lucide-react';
+import { Bell, ShieldCheck, Eye, EyeOff, Check, Heart, X, Clock, Calendar, Droplets } from 'lucide-react';
 import { Language, translations } from '../services/i18n';
 
 interface PreNotificationModalProps {
@@ -24,22 +24,45 @@ export const PreNotificationModal: React.FC<PreNotificationModalProps> = ({
 
   const [advanceDays, setAdvanceDays] = useState<number>(2);
   const [periodAlertEnabled, setPeriodAlertEnabled] = useState(true);
+  const [welcomeAlertEnabled, setWelcomeAlertEnabled] = useState(true);
   const [ovulationAlertEnabled, setOvulationAlertEnabled] = useState(true);
   const [checkinTime, setCheckinTime] = useState('20:00');
   const [hydrationAlertEnabled, setHydrationAlertEnabled] = useState(true);
+  const [hydrationIntervalHours, setHydrationIntervalHours] = useState<number>(2);
+  const [quietHoursEnabled, setQuietHoursEnabled] = useState(true);
 
   if (!isOpen) return null;
 
-  function handleSendTestAlert() {
+  function handleSendTestAlert(type: 'period' | 'welcome' | 'hydration' = 'period') {
+    if (type === 'welcome') {
+      const title = discreteMode 
+        ? "HerLife: Welcome to your safe space" 
+        : "HerLife: Welcome! Your cycle baseline is active";
+      const body = discreteMode
+        ? "Saheli is here whenever you need private guidance."
+        : "Your health sanctuary is set up. Feel free to talk with Saheli or log symptoms anytime.";
+      onTriggerToast(title, body);
+      return;
+    }
+
+    if (type === 'hydration') {
+      const title = discreteMode 
+        ? "Gentle Reminder: Take a moment" 
+        : "Hydration Alert: Time for a warm sip 💧";
+      const body = discreteMode
+        ? "Pause and refresh yourself."
+        : "Drink a glass of warm water or herbal tea to soothe uterine muscles and sustain energy.";
+      onTriggerToast(title, body);
+      return;
+    }
+
     const title = discreteMode 
-      ? (isHinglish ? "Reminder: Personal Check-In" : "Reminder: Personal Check-In")
-      : (isHinglish ? `Alert: Period ${advanceDays} Din Mein Expected Hai` : `Advance Alert: Period Expected in ${advanceDays} Days`);
+      ? "Reminder: Scheduled Wellness Check-In" 
+      : `Advance Alert: Period Expected in ${advanceDays} Days`;
 
     const body = discreteMode
-      ? (isHinglish ? "Aapka daily wellness update check karne ka waqt." : "Time for your scheduled health check-in.")
-      : (isHinglish 
-          ? `Apne pads ya period products bag mein rakh lein. Aaram se rahein aur paani peete rahein.`
-          : `Prepare your preferred period products and maintain hydration. Relax and take it easy.`);
+      ? "Time for your private health check-in."
+      : `Prepare your preferred cycle products and maintain optimal hydration. Rest and take it easy.`;
 
     onTriggerToast(title, body);
   }
@@ -150,6 +173,27 @@ export const PreNotificationModal: React.FC<PreNotificationModalProps> = ({
 
         {/* 3. Daily & Lifestyle Reminders */}
         <div className="space-y-3">
+          {/* Welcome Notification 1 Hour Post-Onboarding */}
+          <div className="flex items-center justify-between p-3 rounded-2xl border border-warm-border bg-white text-xs">
+            <div className="flex items-center gap-2">
+              <Heart className="w-4 h-4 text-brand-600 fill-brand-100" />
+              <div>
+                <span className="font-bold text-warm-textDark">
+                  {isHinglish ? "Welcome Notification (1 Ghante Baad)" : "Welcome Notification (1 Hr Post-Onboarding)"}
+                </span>
+                <p className="text-[10px] text-warm-textMuted">
+                  {isHinglish ? "Onboarding ke baad Saheli ka pehla comforting check-in" : "Initial gentle check-in from Saheli once your profile is set up"}
+                </p>
+              </div>
+            </div>
+            <input
+              type="checkbox"
+              checked={welcomeAlertEnabled}
+              onChange={(e) => setWelcomeAlertEnabled(e.target.checked)}
+              className="rounded text-brand-500 focus:ring-brand-400"
+            />
+          </div>
+
           {/* Daily Evening Check-In */}
           <div className="flex items-center justify-between p-3 rounded-2xl border border-warm-border bg-white text-xs">
             <div className="flex items-center gap-2">
@@ -172,37 +216,97 @@ export const PreNotificationModal: React.FC<PreNotificationModalProps> = ({
           </div>
 
           {/* Hydration & Paani Alerts */}
-          <div className="flex items-center justify-between p-3 rounded-2xl border border-warm-border bg-white text-xs">
-            <div className="flex items-center gap-2">
-              <Droplets className="w-4 h-4 text-cyan-500" />
-              <div>
-                <span className="font-bold text-warm-textDark">
-                  {isHinglish ? "Paani Peene Ka Reminder (Hydration Alert)" : "Hydration & Rest Pre-Alert"}
-                </span>
-                <p className="text-[10px] text-warm-textMuted">
-                  {isHinglish ? "Har 3-4 ghante mein gentle paani reminder" : "Gentle hydration prompt every few hours"}
-                </p>
+          <div className="p-3 rounded-2xl border border-warm-border bg-white text-xs space-y-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Droplets className="w-4 h-4 text-cyan-500" />
+                <div>
+                  <span className="font-bold text-warm-textDark">
+                    {isHinglish ? "Paani Peene Ka Reminder (Hydration Alert)" : "Smart Hydration Prompts"}
+                  </span>
+                  <p className="text-[10px] text-warm-textMuted">
+                    {isHinglish ? "Uterine cramps aur fatigue kam karne ke liye" : "Supports pelvic blood flow and reduces fatigue"}
+                  </p>
+                </div>
               </div>
+              <input
+                type="checkbox"
+                checked={hydrationAlertEnabled}
+                onChange={(e) => setHydrationAlertEnabled(e.target.checked)}
+                className="rounded text-brand-500 focus:ring-brand-400"
+              />
             </div>
-            <input
-              type="checkbox"
-              checked={hydrationAlertEnabled}
-              onChange={(e) => setHydrationAlertEnabled(e.target.checked)}
-              className="rounded text-brand-500 focus:ring-brand-400"
-            />
+
+            {hydrationAlertEnabled && (
+              <div className="pt-2 border-t border-warm-border/60 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] text-warm-textMuted font-medium">Frequency:</span>
+                  <div className="flex gap-1.5">
+                    {[1.5, 2, 3, 4].map((hrs) => (
+                      <button
+                        key={hrs}
+                        type="button"
+                        onClick={() => setHydrationIntervalHours(hrs)}
+                        className={`px-2 py-0.5 rounded-lg text-[10px] font-bold border transition ${
+                          hydrationIntervalHours === hrs
+                            ? 'bg-cyan-600 text-white border-cyan-600'
+                            : 'bg-warm-cardMuted text-warm-textDark border-warm-border'
+                        }`}
+                      >
+                        Every {hrs}h
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between text-[11px]">
+                  <span className="text-warm-textMuted">Quiet Hours (10 PM – 7 AM):</span>
+                  <button
+                    type="button"
+                    onClick={() => setQuietHoursEnabled(!quietHoursEnabled)}
+                    className={`px-2 py-0.5 rounded-lg text-[10px] font-bold transition ${
+                      quietHoursEnabled ? 'bg-indigo-100 text-indigo-700' : 'bg-gray-100 text-gray-500'
+                    }`}
+                  >
+                    {quietHoursEnabled ? 'Silenced at Night' : 'Always Active'}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
-        {/* 4. Live Test Notification Simulator Button */}
-        <div className="pt-2">
-          <button
-            type="button"
-            onClick={handleSendTestAlert}
-            className="w-full py-3 bg-gradient-to-r from-brand-500 to-plum-600 hover:from-brand-600 hover:to-plum-700 text-white font-bold text-xs rounded-2xl shadow-soft transition flex items-center justify-center gap-2"
-          >
-            <Sparkles className="w-4 h-4" />
-            <span>{t.test_btn}</span>
-          </button>
+        {/* 4. Live Test Notification Simulator Buttons */}
+        <div className="pt-1 space-y-2">
+          <span className="text-[11px] font-bold text-warm-textMuted uppercase tracking-wider block">
+            Test Realtime Notification Banners
+          </span>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <button
+              type="button"
+              onClick={() => handleSendTestAlert('period')}
+              className="py-2.5 px-3 bg-gradient-to-r from-brand-600 to-rose-500 hover:from-brand-700 hover:to-rose-600 text-white font-bold text-xs rounded-xl shadow-soft transition flex items-center justify-center gap-1.5"
+            >
+              <Calendar className="w-3.5 h-3.5" />
+              <span>Period Alert</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => handleSendTestAlert('welcome')}
+              className="py-2.5 px-3 bg-gradient-to-r from-plum-600 to-brand-600 hover:from-plum-700 hover:to-brand-700 text-white font-bold text-xs rounded-xl shadow-soft transition flex items-center justify-center gap-1.5"
+            >
+              <Heart className="w-3.5 h-3.5 fill-white" />
+              <span>Welcome Note</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => handleSendTestAlert('hydration')}
+              className="py-2.5 px-3 bg-gradient-to-r from-cyan-600 to-teal-500 hover:from-cyan-700 hover:to-teal-600 text-white font-bold text-xs rounded-xl shadow-soft transition flex items-center justify-center gap-1.5"
+            >
+              <Droplets className="w-3.5 h-3.5" />
+              <span>Hydration Alert</span>
+            </button>
+          </div>
         </div>
       </div>
     </div>

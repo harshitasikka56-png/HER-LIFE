@@ -1,6 +1,6 @@
 import React from 'react';
 import { DailyGuidance } from '../types';
-import { CheckCircle2, XCircle, AlertTriangle, Sparkles } from 'lucide-react';
+import { CheckCircle2, XCircle, AlertTriangle, Flower2 } from 'lucide-react';
 
 interface DailyGuidanceCardProps {
   guidance: DailyGuidance | null;
@@ -13,7 +13,7 @@ export const DailyGuidanceCard: React.FC<DailyGuidanceCardProps> = ({ guidance }
     <div className="bg-white rounded-3xl p-6 border border-warm-border shadow-soft">
       <div className="flex items-center gap-2 mb-6">
         <span className="p-2 bg-sage-100 text-sage-800 rounded-xl">
-          <Sparkles className="w-5 h-5" />
+          <Flower2 className="w-5 h-5" />
         </span>
         <div>
           <h3 className="text-lg font-bold text-warm-textDark font-serif">Daily Routine & Guidance</h3>

@@ -1,0 +1,22 @@
+{
+  "short_name": "HER LIFE",
+  "name": "HER LIFE — Women's Health Companion",
+  "description": "Every Stage. Every Cycle. Every You. AI-powered women's lifetime health companion.",
+  "icons": [
+    {
+      "src": "/pwa-icon-192.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "/pwa-icon-512.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#FAF7F4",
+  "theme_color": "#C26D5C",
+  "display": "standalone",
+  "orientation": "portrait"
+}

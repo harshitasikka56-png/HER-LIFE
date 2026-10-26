@@ -1,49 +1,30 @@
 import React, { useState } from 'react';
 import { UserProfile } from '../types';
 import { api } from '../services/api';
-import { ShieldCheck, EyeOff, Lock, Trash2, Download, AlertTriangle, Check } from 'lucide-react';
+import { ShieldCheck, EyeOff, Lock, AlertTriangle, Check, LogOut } from 'lucide-react';
 
 interface PrivacyPageProps {
   currentUser: UserProfile;
   discreteMode: boolean;
   onToggleDiscrete: () => void;
+  onLogout?: () => void;
 }
 
 export const PrivacyPage: React.FC<PrivacyPageProps> = ({
   currentUser,
   discreteMode,
-  onToggleDiscrete
+  onToggleDiscrete,
+  onLogout
 }) => {
-  const [deleted, setDeleted] = useState(false);
-  const [deleting, setDeleting] = useState(false);
-
-  async function handleDeleteAccount() {
-    if (window.confirm("ARE YOU SURE? This will permanently delete all your cycle history, symptom logs, and account records. This action cannot be undone.")) {
-      setDeleting(true);
-      try {
-        await api.deleteAccount(currentUser.id);
-        setDeleted(true);
-      } catch (e) {
-        console.error(e);
-      } finally {
-        setDeleting(false);
-      }
-    }
-  }
-
-  function handleExport() {
-    window.open(api.getExportCSVUrl(currentUser.id), '_blank');
-  }
-
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
+    <div className="max-w-4xl mx-auto space-y-4 sm:space-y-6">
       {/* Title */}
-      <div className="bg-white p-6 rounded-3xl border border-warm-border shadow-soft">
+      <div className="bg-white p-4 sm:p-6 rounded-3xl border border-warm-border shadow-soft">
         <div className="flex items-center gap-2 text-emerald-700 text-xs font-semibold uppercase tracking-wider">
           <ShieldCheck className="w-4 h-4 text-emerald-600" />
           <span>Privacy, Consent & Safety</span>
         </div>
-        <h2 className="text-2xl font-bold font-serif text-warm-textDark mt-1">
+        <h2 className="text-xl sm:text-2xl font-bold font-serif text-warm-textDark mt-1">
           Your Health Data Belongs Exclusively to You
         </h2>
         <p className="text-xs text-warm-textMuted mt-1 leading-relaxed">
@@ -52,8 +33,8 @@ export const PrivacyPage: React.FC<PrivacyPageProps> = ({
       </div>
 
       {/* Discrete Preview Controls */}
-      <div className="bg-white p-6 rounded-3xl border border-warm-border shadow-soft space-y-4">
-        <div className="flex items-center justify-between">
+      <div className="bg-white p-4 sm:p-6 rounded-3xl border border-warm-border shadow-soft space-y-4">
+        <div className="flex items-center justify-between gap-3">
           <div>
             <h3 className="text-base font-bold text-warm-textDark flex items-center gap-2">
               <EyeOff className="w-4 h-4 text-plum-600" />
@@ -90,7 +71,7 @@ export const PrivacyPage: React.FC<PrivacyPageProps> = ({
       </div>
 
       {/* Privacy Guarantees */}
-      <div className="bg-white p-6 rounded-3xl border border-warm-border shadow-soft space-y-3">
+      <div className="bg-white p-4 sm:p-6 rounded-3xl border border-warm-border shadow-soft space-y-3">
         <h3 className="text-base font-bold text-warm-textDark font-serif">Core Privacy Commitments</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs text-warm-textDark">
           <div className="p-3.5 bg-emerald-50/50 rounded-2xl border border-emerald-100 space-y-1">
@@ -115,37 +96,22 @@ export const PrivacyPage: React.FC<PrivacyPageProps> = ({
         </div>
       </div>
 
-      {/* Data Export & Deletion */}
-      <div className="bg-white p-6 rounded-3xl border border-warm-border shadow-soft space-y-4">
-        <h3 className="text-base font-bold text-warm-textDark font-serif">Data Portability & Account Erasure</h3>
+      {/* Account Session & Log Out */}
+      <div className="bg-white p-4 sm:p-6 rounded-3xl border border-warm-border shadow-soft space-y-3">
+        <h3 className="text-base font-bold text-warm-textDark font-serif">Account Session</h3>
         <p className="text-xs text-warm-textMuted">
-          You have full rights to export your entire dataset in CSV format or permanently erase your account.
+          Signed in as <strong className="text-warm-textDark font-semibold">{currentUser.full_name}</strong> ({currentUser.email}). You can log out anytime to exit your current session.
         </p>
 
-        <div className="flex flex-wrap gap-3 pt-2">
+        <div className="pt-2">
           <button
-            onClick={handleExport}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold bg-warm-cardMuted hover:bg-warm-border text-warm-textDark border border-warm-border transition"
+            onClick={onLogout}
+            className="w-full sm:w-auto flex items-center justify-center gap-2.5 px-6 py-3.5 rounded-2xl text-xs sm:text-sm font-bold bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 transition min-h-[46px] active:scale-98 shadow-xs"
           >
-            <Download className="w-4 h-4 text-brand-600" />
-            <span>Download All Data (.CSV)</span>
-          </button>
-
-          <button
-            onClick={handleDeleteAccount}
-            disabled={deleting || deleted}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 transition"
-          >
-            <Trash2 className="w-4 h-4" />
-            <span>{deleted ? 'Account Deleted' : deleting ? 'Purging records...' : 'Permanently Delete Account & Data'}</span>
+            <LogOut className="w-4 h-4 text-rose-600" />
+            <span>Log Out</span>
           </button>
         </div>
-
-        {deleted && (
-          <div className="p-3 bg-rose-50 text-rose-800 text-xs rounded-xl border border-rose-200">
-            All records and history have been purged from the database.
-          </div>
-        )}
       </div>
     </div>
   );

@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { Bell, X, ShieldAlert, Sparkles, Heart } from 'lucide-react';
+import { Bell, X, ShieldAlert, ShieldCheck, Heart } from 'lucide-react';
 
 interface NotificationToastProps {
   show: boolean;
@@ -38,7 +38,7 @@ export const NotificationToast: React.FC<NotificationToastProps> = ({
           </div>
           <p className="text-xs text-warm-textDark/80 leading-relaxed">{body}</p>
           <div className="pt-1 flex items-center gap-1 text-[10px] text-brand-600 font-semibold">
-            <Sparkles className="w-3 h-3" />
+            <ShieldCheck className="w-3.5 h-3.5" />
             <span>HER LIFE Smart Pre-Alert</span>
           </div>
         </div>

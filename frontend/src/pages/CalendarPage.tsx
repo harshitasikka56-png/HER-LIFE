@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { UserProfile, CycleRecord } from '../types';
 import { api } from '../services/api';
-import { Calendar as CalendarIcon, Plus, Trash2, AlertCircle, Sparkles, Check, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Calendar as CalendarIcon, Plus, Trash2, AlertCircle, Check, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useBackHandler } from '../services/backNavigation';
 
 interface CalendarPageProps {
   currentUser: UserProfile;
@@ -11,6 +12,19 @@ export const CalendarPage: React.FC<CalendarPageProps> = ({ currentUser }) => {
   const [cycles, setCycles] = useState<CycleRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [showLogModal, setShowLogModal] = useState(false);
+
+  useBackHandler(
+    'calendar_log_modal',
+    80,
+    () => {
+      if (showLogModal) {
+        setShowLogModal(false);
+        return true;
+      }
+      return false;
+    },
+    showLogModal
+  );
   const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
   const [endDate, setEndDate] = useState('');
   const [flowLevel, setFlowLevel] = useState<'light' | 'medium' | 'heavy' | 'spotting'>('medium');
@@ -166,7 +180,7 @@ export const CalendarPage: React.FC<CalendarPageProps> = ({ currentUser }) => {
         </div>
 
         {/* Days of week */}
-        <div className="grid grid-cols-7 gap-2 mb-2 text-center text-xs font-semibold text-warm-textMuted">
+        <div className="grid grid-cols-7 gap-1 sm:gap-2 mb-2 text-center text-[11px] sm:text-xs font-semibold text-warm-textMuted">
           {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((d) => (
             <div key={d} className="py-1">
               {d}
@@ -175,9 +189,9 @@ export const CalendarPage: React.FC<CalendarPageProps> = ({ currentUser }) => {
         </div>
 
         {/* Calendar Grid */}
-        <div className="grid grid-cols-7 gap-2">
+        <div className="grid grid-cols-7 gap-1 sm:gap-2">
           {Array.from({ length: firstDayIndex }).map((_, i) => (
-            <div key={`empty-${i}`} className="h-14 rounded-2xl bg-warm-cardMuted/30" />
+            <div key={`empty-${i}`} className="min-h-[46px] sm:h-14 rounded-xl sm:rounded-2xl bg-warm-cardMuted/30" />
           ))}
 
           {Array.from({ length: daysInMonth }).map((_, i) => {
@@ -187,9 +201,14 @@ export const CalendarPage: React.FC<CalendarPageProps> = ({ currentUser }) => {
             const isToday = new Date().toISOString().split('T')[0] === dateStr;
 
             return (
-              <div
+              <button
+                type="button"
                 key={dayNum}
-                className={`h-14 rounded-2xl p-1.5 flex flex-col justify-between border transition relative ${
+                onClick={() => {
+                  setStartDate(dateStr);
+                  setShowLogModal(true);
+                }}
+                className={`min-h-[46px] sm:h-14 rounded-xl sm:rounded-2xl p-1 sm:p-1.5 flex flex-col justify-between border transition text-left cursor-pointer transform active:scale-95 ${
                   flow
                     ? flow === 'heavy'
                       ? 'bg-rose-500 text-white border-rose-600 shadow-xs'
@@ -197,92 +216,139 @@ export const CalendarPage: React.FC<CalendarPageProps> = ({ currentUser }) => {
                       ? 'bg-brand-400 text-white border-brand-500'
                       : 'bg-brand-200 text-brand-900 border-brand-300'
                     : isToday
-                    ? 'border-brand-500 bg-brand-50/40 text-brand-700 font-bold'
-                    : 'border-warm-border/60 hover:border-warm-border text-warm-textDark bg-white'
+                    ? 'border-brand-500 bg-brand-50/70 text-brand-700 font-bold'
+                    : 'border-warm-border/60 hover:border-brand-300 text-warm-textDark bg-white hover:bg-rose-50/40'
                 }`}
               >
-                <span className="text-xs font-medium">{dayNum}</span>
+                <span className="text-[11px] sm:text-xs font-medium leading-none">{dayNum}</span>
                 {flow && (
-                  <span className="text-[9px] font-bold uppercase tracking-wider truncate">
+                  <span className="text-[8px] sm:text-[9px] font-bold uppercase tracking-wider truncate max-w-full">
                     {flow}
                   </span>
                 )}
-              </div>
+              </button>
             );
           })}
         </div>
 
         {/* Legend */}
-        <div className="flex flex-wrap items-center gap-4 mt-6 pt-4 border-t border-warm-border text-xs text-warm-textMuted">
+        <div className="flex flex-wrap items-center gap-3 sm:gap-4 mt-5 pt-4 border-t border-warm-border text-[11px] sm:text-xs text-warm-textMuted">
           <div className="flex items-center gap-1.5">
-            <span className="w-3 h-3 rounded bg-rose-500" />
+            <span className="w-2.5 h-2.5 rounded bg-rose-500" />
             <span>Heavy Flow</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="w-3 h-3 rounded bg-brand-400" />
+            <span className="w-2.5 h-2.5 rounded bg-brand-400" />
             <span>Medium Flow</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="w-3 h-3 rounded bg-brand-200" />
+            <span className="w-2.5 h-2.5 rounded bg-brand-200" />
             <span>Light / Spotting</span>
           </div>
+          <span className="text-[10px] text-brand-600 font-medium ml-auto">
+            💡 Tap any date to log flow
+          </span>
         </div>
       </div>
 
       {/* Logged Cycles History List */}
-      <div className="bg-white rounded-3xl p-6 border border-warm-border shadow-soft">
-        <h3 className="text-lg font-bold text-warm-textDark font-serif mb-4">Recorded Cycle Log History</h3>
+      <div className="bg-white rounded-3xl p-5 sm:p-6 border border-warm-border shadow-soft space-y-3">
+        <h3 className="text-base sm:text-lg font-bold text-warm-textDark font-serif">Recorded Cycle Log History</h3>
         {cycles.length === 0 ? (
-          <p className="text-xs text-warm-textMuted">No cycles logged yet. Click "Log Period Start" above to begin.</p>
+          <p className="text-xs text-warm-textMuted">No cycles logged yet. Tap "Log Period Start" above or tap any date to begin.</p>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead>
-                <tr className="border-b border-warm-border text-warm-textMuted font-semibold">
-                  <th className="py-2.5 px-3">Period Start</th>
-                  <th className="py-2.5 px-3">Period End</th>
-                  <th className="py-2.5 px-3">Bleeding Duration</th>
-                  <th className="py-2.5 px-3">Cycle Length</th>
-                  <th className="py-2.5 px-3">Flow Level</th>
-                  <th className="py-2.5 px-3">Source</th>
-                  <th className="py-2.5 px-3 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-warm-border/60">
-                {cycles.map((c) => (
-                  <tr key={c.id} className="hover:bg-warm-cardMuted/40 transition">
-                    <td className="py-3 px-3 font-semibold text-warm-textDark">
-                      {new Date(c.period_start_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                    </td>
-                    <td className="py-3 px-3 text-warm-textMuted">
-                      {c.period_end_date ? new Date(c.period_end_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Ongoing'}
-                    </td>
-                    <td className="py-3 px-3">{c.bleeding_duration_days || 5} days</td>
-                    <td className="py-3 px-3 font-medium text-brand-700">
-                      {c.cycle_length_days ? `${c.cycle_length_days} days` : '—'}
-                    </td>
-                    <td className="py-3 px-3 capitalize">
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-brand-50 text-brand-700 border border-brand-200">
-                        {c.flow_level}
+          <>
+            {/* Mobile Card List (Visible on phones) */}
+            <div className="md:hidden space-y-2.5">
+              {cycles.map((c) => (
+                <div key={c.id} className="p-3.5 bg-warm-cardMuted/50 rounded-2xl border border-warm-border space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="font-bold text-xs text-warm-textDark">
+                        {new Date(c.period_start_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                       </span>
-                    </td>
-                    <td className="py-3 px-3 text-[10px] text-warm-textMuted uppercase font-semibold">
-                      {c.record_source === 'DEMO_SYNTHETIC' ? 'Synthetic Demo' : 'User Logged'}
-                    </td>
-                    <td className="py-3 px-3 text-right">
-                      <button
-                        onClick={() => handleDelete(c.id)}
-                        className="text-warm-textMuted hover:text-rose-600 transition p-1"
-                        title="Delete cycle"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </td>
+                      <span className="text-[10px] text-warm-textMuted ml-1.5">
+                        {c.period_end_date ? `to ${new Date(c.period_end_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}` : 'Ongoing'}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleDelete(c.id)}
+                      className="p-1 rounded-lg text-rose-500 hover:bg-rose-50 transition"
+                      title="Delete record"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+
+                  <div className="flex items-center gap-2 text-[11px]">
+                    <span className="bg-rose-100 text-rose-800 px-2 py-0.5 rounded-full font-bold capitalize">
+                      {c.flow_level} flow
+                    </span>
+                    <span className="text-warm-textMuted font-medium">
+                      {c.bleeding_duration_days || 5} days bleeding
+                    </span>
+                    {c.cycle_length_days && (
+                      <span className="text-brand-700 font-bold ml-auto">
+                        {c.cycle_length_days}d cycle
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Desktop Table View */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead>
+                  <tr className="border-b border-warm-border text-warm-textMuted font-semibold">
+                    <th className="py-2.5 px-3">Period Start</th>
+                    <th className="py-2.5 px-3">Period End</th>
+                    <th className="py-2.5 px-3">Bleeding Duration</th>
+                    <th className="py-2.5 px-3">Cycle Length</th>
+                    <th className="py-2.5 px-3">Flow Level</th>
+                    <th className="py-2.5 px-3">Source</th>
+                    <th className="py-2.5 px-3 text-right">Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-warm-border/60">
+                  {cycles.map((c) => (
+                    <tr key={c.id} className="hover:bg-warm-cardMuted/40 transition">
+                      <td className="py-3 px-3 font-semibold text-warm-textDark">
+                        {new Date(c.period_start_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                      </td>
+                      <td className="py-3 px-3 text-warm-textMuted">
+                        {c.period_end_date ? new Date(c.period_end_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Ongoing'}
+                      </td>
+                      <td className="py-3 px-3">{c.bleeding_duration_days || 5} days</td>
+                      <td className="py-3 px-3 font-semibold text-brand-700">
+                        {c.cycle_length_days ? `${c.cycle_length_days} days` : 'Calculating'}
+                      </td>
+                      <td className="py-3 px-3 capitalize">
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                          c.flow_level === 'heavy' ? 'bg-rose-100 text-rose-700' :
+                          c.flow_level === 'medium' ? 'bg-brand-100 text-brand-700' :
+                          'bg-amber-100 text-amber-700'
+                        }`}>
+                          {c.flow_level}
+                        </span>
+                      </td>
+                      <td className="py-3 px-3 text-warm-textMuted">{c.record_source}</td>
+                      <td className="py-3 px-3 text-right">
+                        <button
+                          onClick={() => handleDelete(c.id)}
+                          className="p-1 rounded-lg text-rose-500 hover:bg-rose-50 transition"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </div>
 

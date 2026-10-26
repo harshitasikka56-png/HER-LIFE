@@ -1,6 +1,6 @@
 import React from 'react';
 import { SymptomForecast } from '../types';
-import { Brain, Sparkles, Info } from 'lucide-react';
+import { Brain, Activity, Info } from 'lucide-react';
 
 interface SymptomForecastCardProps {
   forecast: SymptomForecast | null;

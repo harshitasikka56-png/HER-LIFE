@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { 
-  Sparkles, 
+  Flower2, 
   ChevronLeft, 
   ChevronRight, 
   BookOpen, 
@@ -459,7 +459,7 @@ export const FirstPeriodEducationSlide: React.FC<FirstPeriodEducationSlideProps>
                 {isHinglish ? 'Nayi Shuruaat • Zero Knowledge Guide' : 'Beginner Friendly • Zero Knowledge Hub'}
               </span>
               <span className="text-xs text-rose-600 font-bold hidden sm:inline-flex items-center gap-1">
-                <Sparkles className="w-3.5 h-3.5" />
+                <Flower2 className="w-3.5 h-3.5" />
                 {isHinglish ? 'Pehla Period Guide' : 'First Period Master Guide'}
               </span>
             </div>
