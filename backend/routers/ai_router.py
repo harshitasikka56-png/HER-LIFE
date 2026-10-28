@@ -23,7 +23,12 @@ def ask_ai_guide(user_id: str, req: AIChatRequest, db: Session = Depends(get_db)
         user = db.query(User).first()
 
     # Get vetted answer
-    result = answer_health_query(user, req.message)
+    result = answer_health_query(
+        user=user, 
+        query=req.message, 
+        language=req.language, 
+        chat_context=req.chat_context
+    )
 
     # Save to history
     user_msg = AIChatHistory(

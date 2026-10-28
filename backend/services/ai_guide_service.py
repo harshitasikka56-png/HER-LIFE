@@ -190,28 +190,107 @@ DEFAULT_RESPONSE = {
 }
 
 
-def is_hinglish_text(text: str) -> bool:
-    hinglish_markers = [
-        r"\bdard\b", r"\bkya\b", r"\bkyun\b", r"\bkaise\b", r"\bhota\b", r"\bhai\b",
-        r"\bkarein\b", r"\bbatao\b", r"\bpet dard\b", r"\bkamar dard\b", r"\bneend\b",
-        r"\bpaani\b", r"\bgharelu\b", r"\bupay\b", r"\bsaheli\b", r"\btheek\b",
-        r"\bpehle\b", r"\bkripya\b", r"\bjaankari\b"
-    ]
-    t = text.lower()
-    return any(re.search(m, t) for m in hinglish_markers)
-
-
-def answer_health_query(user: Any, query: str) -> Dict[str, Any]:
+def detect_script_or_language(text: str, explicit_lang: str = None) -> str:
     """
-    Matches user query to vetted knowledge base and enriches with ethical medical disclaimers in English or Hinglish.
+    Auto-detects language from script Unicode ranges or explicit language code.
+    """
+    if explicit_lang and explicit_lang in ['hi', 'hinglish', 'pa', 'bn', 'ta', 'te', 'mr', 'gu', 'kn', 'ml', 'or', 'ur', 'as', 'en']:
+        return explicit_lang
+
+    # Check Indic Unicode blocks
+    if re.search(r"[\u0A00-\u0A7F]", text):
+        return 'pa' # Gurmukhi / Punjabi
+    if re.search(r"[\u0900-\u097F]", text):
+        return 'hi' # Devanagari / Hindi
+    if re.search(r"[\u0980-\u09FF]", text):
+        return 'bn' # Bengali / Assamese
+    if re.search(r"[\u0B80-\u0BFF]", text):
+        return 'ta' # Tamil
+    if re.search(r"[\u0C00-\u0C7F]", text):
+        return 'te' # Telugu
+    if re.search(r"[\u0A80-\u0AFF]", text):
+        return 'gu' # Gujarati
+    if re.search(r"[\u0C80-\u0CFF]", text):
+        return 'kn' # Kannada
+    if re.search(r"[\u0D00-\u0D7F]", text):
+        return 'ml' # Malayalam
+    if re.search(r"[\u0600-\u06FF]", text):
+        return 'ur' # Urdu / Nastaliq
+
+    if is_hinglish_text(text):
+        return 'hinglish'
+
+    return 'en'
+
+
+PUNJABI_RESPONSES = {
+    "cramp": (
+        "ਮਾਹਵਾਰੀ ਦੇ ਦਰਦ (ਕ੍ਰੈਂਪਸ) ਤੋਂ ਰਾਹਤ ਲਈ ਪੇਟ ਦੇ ਹੇਠਲੇ ਹਿੱਸੇ 'ਤੇ ਗਰਮ ਪਾਣੀ ਦੀ ਥੈਲੀ (ਹੀਟਿੰਗ ਪੈਡ) ਰੱਖੋ। "
+        "ਗੁਣਗੁਣਾ ਪਾਣੀ ਜਾਂ ਅਦਰਕ-ਤੁਲਸੀ ਵਾਲੀ ਚਾਹ ਪੀਓ ਅਤੇ ਹਲਕੀ ਸਟ੍ਰੈਚਿੰਗ ਕਰੋ। ਜੇਕਰ ਦਰਦ ਬਹੁਤ ਜ਼ਿਆਦਾ ਹੋਵੇ ਤਾਂ ਡਾਕਟਰ ਦੀ ਸਲਾਹ ਜ਼ਰੂਰ ਲਵੋ।"
+    ),
+    "pcos": (
+        "PCOS (ਪੌਲੀਸਿਸਟਿਕ ਓਵਰੀ ਸਿੰਡਰੋਮ) ਇੱਕ ਹਾਰਮੋਨਲ ਅਸੰਤੁਲਨ ਹੈ। ਇਸਦੇ ਮੁੱਖ ਲੱਛਣਾਂ ਵਿੱਚ ਅਨਿਯਮਿਤ ਮਾਹਵਾਰੀ, ਚਿਹਰੇ 'ਤੇ ਅਣਚਾਹੇ ਵਾਲ ਅਤੇ ਮੁਹਾਸੇ ਸ਼ਾਮਲ ਹਨ। "
+        "ਸੰਤੁਲਿਤ ਖੁਰਾਕ ਅਤੇ ਰੋਜ਼ਾਨਾ 30 ਮਿੰਟ ਸੈਰ ਕਰਨ ਨਾਲ ਹਾਰਮੋਨਜ਼ ਨੂੰ ਸੰਤੁਲਿਤ ਰੱਖਣ ਵਿੱਚ ਬਹੁਤ ਮਦਦ ਮਿਲਦੀ ਹੈ।"
+    ),
+    "stress": (
+        "ਹਾਂ, ਬਹੁਤ ਜ਼ਿਆਦਾ ਤਣਾਅ ਜਾਂ ਇਮਤਿਹਾਨਾਂ ਦੇ ਦਬਾਅ ਨਾਲ ਸਰੀਰ ਵਿੱਚ ਕੋਰਟੀਸੋਲ ਹਾਰਮੋਨ ਵੱਧ ਜਾਂਦਾ ਹੈ, ਜਿਸ ਨਾਲ ਓਵੂਲੇਸ਼ਨ ਲੇਟ ਹੋ ਸਕਦੀ ਹੈ ਅਤੇ ਪੀਰੀਅਡ ਵਿੱਚ ਦੇਰੀ ਹੋ ਸਕਦੀ ਹੈ। "
+        "ਰੋਜ਼ਾਨਾ 7-8 ਘੰਟੇ ਦੀ ਚੰਗੀ ਨੀਂਦ ਲਵੋ ਅਤੇ ਡੂੰਘੇ ਸਾਹ ਲੈਣ ਦੀ ਕਸਰਤ ਕਰੋ।"
+    ),
+    "default": (
+        "ਸਤਿ ਸ੍ਰੀ ਅਕਾਲ! ਮੈਂ ਸਹੇਲੀ ਹਾਂ, ਤੁਹਾਡੀ ਨਿੱਜੀ ਸਿਹਤ ਸਾਥੀ। ਮਾਹਵਾਰੀ ਚੱਕਰ, ਦਰਦ, ਤਣਾਅ ਜਾਂ ਪੋਸ਼ਣ ਬਾਰੇ ਤੁਸੀਂ ਬਿਨਾਂ ਕਿਸੇ ਝਿਜਕ ਦੇ ਮੈਨੂੰ ਕੁਝ ਵੀ ਪੁੱਛ ਸਕਦੇ ਹੋ।"
+    )
+}
+
+HINDI_RESPONSES = {
+    "cramp": (
+        "पीरियड्स में पेट और कमर दर्द (क्रैम्प्स) के लिए नाभि के निचले हिस्से पर हीटिंग पैड से सिकाई करें, गुनगुना पानी पिएं और हल्की स्ट्रेचिंग करें। "
+        "अदरक की गर्म चाय से मांसपेशियों को तुरंत आराम मिलता है। अत्यधिक दर्द होने पर डॉक्टर से जांच अवश्य करवाएं।"
+    ),
+    "pcos": (
+        "PCOS एक सामान्य हार्मोनल असंतुलन है, जिसके मुख्य लक्षणों में अनियमित मासिक धर्म, मुंहासे और चेहरे पर अनचाहे बाल आना शामिल हैं। "
+        "कम चीनी वाला संतुलित भोजन और रोज 30 मिनट हल्की वॉक करने से हार्मोन्स प्राकृतिक रूप से संतुलित रहते हैं।"
+    ),
+    "stress": (
+        "हाँ, तनाव और परीक्षाओं के दबाव से कोर्टिसोल हार्मोन बढ़ जाता है, जिससे ओव्यूलेशन टल सकता है और पीरियड लेट हो सकता है। "
+        "7 से 8 घंटे की पूरी नींद लें और गहरी सांस वाले प्राणायाम करें।"
+    ),
+    "default": (
+        "नमस्ते! मैं सहेली हूँ, आपकी निजी स्वास्थ्य साथी। पीरियड्स, पोषण, दर्द निवारण और हार्मोनल स्वास्थ्य पर आप मुझसे कोई भी प्रश्न निःसंकोच पूछ सकती हैं।"
+    )
+}
+
+
+def answer_health_query(
+    user: Any, 
+    query: str, 
+    language: str = None, 
+    chat_context: str = None
+) -> Dict[str, Any]:
+    """
+    Matches user query to vetted clinical knowledge base with multilingual detection (Hindi, Punjabi, Hinglish, English).
+    Supports follow-up context and ethical clinical guardrails.
     """
     clean_q = query.lower()
-    hinglish_detected = is_hinglish_text(clean_q)
     
-    # Check for emergency/urgent symptoms
-    emergency_pattern = r"(fainted|fainting|passed out|emergency|bleeding through pad in an hour|unbearable pain|chest pain|behosh|bahut zyada khoon)"
+    # If follow-up context exists, append to clean query for topic retention
+    combined_query = f"{chat_context.lower()} {clean_q}" if chat_context else clean_q
+
+    detected_lang = detect_script_or_language(query, explicit_lang=language)
+    
+    # 1. Emergency red flags check
+    emergency_pattern = r"(fainted|fainting|passed out|emergency|bleeding through pad in an hour|unbearable pain|chest pain|behosh|bahut zyada khoon|ਚੱਕਰ|ਬੇਹੋਸ਼)"
     if re.search(emergency_pattern, clean_q):
-        if hinglish_detected:
+        if detected_lang == 'pa':
+            reply = (
+                "⚠️ **ਜ਼ਰੂਰੀ ਐਮਰਜੈਂਸੀ ਅਲਰਟ**\n\n"
+                "ਤੁਹਾਡੇ ਵੱਲੋਂ ਦੱਸੇ ਗਏ ਲੱਛਣ ਤੁਰੰਤ ਡਾਕਟਰੀ ਜਾਂਚ ਦੀ ਮੰਗ ਕਰਦੇ ਹਨ:\n"
+                "• 1-2 ਘੰਟੇ ਵਿੱਚ ਪੈਡ ਪੂਰੀ ਤਰ੍ਹਾਂ ਭਿੱਜ ਜਾਣਾ (ਜ਼ਿਆਦਾ ਖੂਨ ਵਹਿਣਾ)\n"
+                "• ਅਚਾਨਕ ਬੇਹੋਸ਼ੀ, ਚੱਕਰ ਆਉਣੇ ਜਾਂ ਛਾਤੀ ਵਿੱਚ ਦਰਦ\n"
+                "• ਅਸਹਿਣਯੋਗ ਪੇਟ ਦਰਦ\n\n"
+                "ਕਿਰਪਾ ਕਰਕੇ ਤੁਰੰਤ ਨਜ਼ਦੀਕੀ ਕਲੀਨਿਕ ਜਾਂ ਐਮਰਜੈਂਸੀ ਨੰਬਰ (112) 'ਤੇ ਸੰਪਰਕ ਕਰੋ।"
+            )
+            disclaimer = "HER LIFE ਐਮਰਜੈਂਸੀ ਮੈਡੀਕਲ ਇਲਾਜ ਪ੍ਰਦਾਨ ਨਹੀਂ ਕਰਦਾ।"
+        elif detected_lang in ['hi', 'hinglish']:
             reply = (
                 "⚠️ **ZAROORI EMERGENCY ALERT**\n\n"
                 "Aapne jo lakshan bataye hain, unhe turant doctor ya emergency hospital mein dikhana zaroori hai:\n"
@@ -237,32 +316,69 @@ def answer_health_query(user: Any, query: str) -> Dict[str, Any]:
             "medical_disclaimer": disclaimer
         }
 
-    # Match best knowledge entry
+    # 2. Match best knowledge entry
     best_match = None
     max_score = 0
     
     for entry in KNOWLEDGE_BASE:
-        score = sum(1 for kw in entry["keywords"] if kw in clean_q)
+        score = sum(1 for kw in entry["keywords"] if kw in combined_query)
         if score > max_score:
             max_score = score
             best_match = entry
 
     if best_match and max_score > 0:
-        reply = best_match.get("hinglish_response") if hinglish_detected else best_match["response"]
-        disclaimer = "Kripya dhyan dein: Yeh jaankari educational purpose ke liye hai, not a medical diagnosis. Clinical diagnosis ke liye doctor se consult karein." if hinglish_detected else "Educational information only. Not a medical diagnosis or prescription. Consult your healthcare provider for clinical advice."
+        if detected_lang == 'pa':
+            if any(k in combined_query for k in ['cramp', 'pain', 'dard', 'ਪੇਟ ਦਰਦ', 'ਦਰਦ']):
+                reply = PUNJABI_RESPONSES['cramp']
+            elif any(k in combined_query for k in ['pcos', 'pcod', 'ਵਾਲ', 'ਮੁਹਾਸੇ']):
+                reply = PUNJABI_RESPONSES['pcos']
+            elif any(k in combined_query for k in ['stress', 'cortisol', 'ਤਣਾਅ', 'ਨੀਂਦ']):
+                reply = PUNJABI_RESPONSES['stress']
+            else:
+                reply = best_match.get("hinglish_response", best_match["response"])
+            disclaimer = "ਇਹ ਜਾਣਕਾਰੀ ਸਿਰਫ਼ ਸਿੱਖਿਆ ਦੇ ਉਦੇਸ਼ ਲਈ ਹੈ, ਡਾਕਟਰੀ ਨਿਦਾਨ ਨਹੀਂ।"
+        elif detected_lang == 'hi':
+            if any(k in combined_query for k in ['cramp', 'pain', 'dard', 'पेट दर्द', 'दर्द']):
+                reply = HINDI_RESPONSES['cramp']
+            elif any(k in combined_query for k in ['pcos', 'pcod', 'मुंहासे']):
+                reply = HINDI_RESPONSES['pcos']
+            elif any(k in combined_query for k in ['stress', 'cortisol', 'तनाव', 'नींद']):
+                reply = HINDI_RESPONSES['stress']
+            else:
+                reply = best_match.get("hinglish_response", best_match["response"])
+            disclaimer = "यह जानकारी केवल शैक्षणिक उद्देश्य के लिए है। चिकित्सीय सलाह के लिए डॉक्टर से संपर्क करें।"
+        elif detected_lang == 'hinglish':
+            reply = best_match.get("hinglish_response", best_match["response"])
+            disclaimer = "Kripya dhyan dein: Yeh jaankari educational purpose ke liye hai. Clinical guidance ke liye doctor se consult karein."
+        else:
+            reply = best_match["response"]
+            disclaimer = "Educational information only. Grounded in ACOG, Monash PCOS, and NAMS clinical guidelines."
+
         return {
             "title": best_match["title"],
-            "reply": reply or best_match["response"],
+            "reply": reply,
             "sources": best_match["sources"],
             "recommended_questions": best_match["recommended_questions"],
             "medical_disclaimer": disclaimer
         }
     else:
-        reply = DEFAULT_RESPONSE.get("hinglish_response") if hinglish_detected else DEFAULT_RESPONSE["response"]
+        if detected_lang == 'pa':
+            reply = PUNJABI_RESPONSES['default']
+            disclaimer = "ਇਹ ਜਾਣਕਾਰੀ ਸਿਰਫ਼ ਸਿੱਖਿਆ ਦੇ ਉਦੇਸ਼ ਲਈ ਹੈ।"
+        elif detected_lang == 'hi':
+            reply = HINDI_RESPONSES['default']
+            disclaimer = "यह जानकारी केवल शैक्षणिक उद्देश्य के लिए है।"
+        elif detected_lang == 'hinglish':
+            reply = DEFAULT_RESPONSE.get("hinglish_response", DEFAULT_RESPONSE["response"])
+            disclaimer = "Educational guidance grounded in women's health guidelines."
+        else:
+            reply = DEFAULT_RESPONSE["response"]
+            disclaimer = "Educational information only. Consult your healthcare provider for clinical advice."
+
         return {
             "title": DEFAULT_RESPONSE["title"],
-            "reply": reply or DEFAULT_RESPONSE["response"],
+            "reply": reply,
             "sources": DEFAULT_RESPONSE["sources"],
             "recommended_questions": DEFAULT_RESPONSE["recommended_questions"],
-            "medical_disclaimer": "Educational information only."
+            "medical_disclaimer": disclaimer
         }

@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { LotusBloomIcon } from '../components/common/LotusBloomIcon';
 import { Language, INDIAN_LANGUAGES } from '../services/i18n';
+import { saheliMemory } from '../services/saheliMemory';
 
 interface AIGuidePageProps {
   currentUser: UserProfile;
@@ -33,6 +34,7 @@ interface ChatMessage {
   sources?: string[];
   disclaimer?: string;
   recommended_questions?: string[];
+  mode?: 'voice' | 'text';
 }
 
 const QUICK_TOPICS = [
@@ -50,25 +52,13 @@ export const AIGuidePage: React.FC<AIGuidePageProps> = ({
   onOpenVoiceAssistant,
   onBack
 }) => {
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    {
-      id: 'welcome_1',
-      role: 'assistant',
-      content: `Hello ${currentUser.full_name.split(' ')[0]}! I am Saheli, your private AI health companion.\n\nI am grounded in vetted clinical guidelines from ACOG (American College of Obstetricians and Gynecologists), Monash University PCOS Guidelines, and NAMS (North American Menopause Society).\n\nAsk me anything about your cycle, cramps, hormones, stress, or nutrition in your language!`,
-      sources: ["ACOG Clinical Guidelines", "Monash University International PCOS Guidelines"],
-      recommended_questions: [
-        "What are the 4 cycle phases?",
-        "How to relieve period cramps naturally?",
-        "Can stress or exams delay my period?"
-      ]
-    }
-  ]);
-
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [speakingMessageId, setSpeakingMessageId] = useState<string | null>(null);
   const [isListening, setIsListening] = useState(false);
   const [voiceNotice, setVoiceNotice] = useState('');
+  const [readAloudEnabled, setReadAloudEnabled] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const synthRef = useRef<SpeechSynthesis | null>(null);
@@ -76,6 +66,58 @@ export const AIGuidePage: React.FC<AIGuidePageProps> = ({
 
   // Determine language metadata
   const currentLangMeta = INDIAN_LANGUAGES.find(l => l.code === currentUser.preferred_language) || INDIAN_LANGUAGES[0];
+
+  useEffect(() => {
+    // Load initial messages from shared Saheli memory or add default welcome
+    const initialHist = saheliMemory.getMessages();
+    if (initialHist.length > 0) {
+      setMessages(initialHist.map(m => ({
+        id: m.id,
+        role: m.role,
+        content: m.content,
+        sources: m.sources,
+        recommended_questions: m.recommended_questions,
+        mode: m.mode
+      })));
+    } else {
+      const welcome: ChatMessage = {
+        id: 'welcome_1',
+        role: 'assistant',
+        content: `Hello ${currentUser.full_name.split(' ')[0]}! I am Saheli, your private AI health companion.\n\nI am grounded in vetted clinical guidelines from ACOG (American College of Obstetricians and Gynecologists), Monash University PCOS Guidelines, and NAMS (North American Menopause Society).\n\nAsk me anything about your cycle, cramps, hormones, stress, or nutrition in your language!`,
+        sources: ["ACOG Clinical Guidelines", "Monash University International PCOS Guidelines"],
+        recommended_questions: [
+          "What are the 4 cycle phases?",
+          "How to relieve period cramps naturally?",
+          "Can stress or exams delay my period?"
+        ],
+        mode: 'text'
+      };
+      setMessages([welcome]);
+      saheliMemory.addMessage({
+        role: 'assistant',
+        content: welcome.content,
+        mode: 'text',
+        languageCode: currentLangMeta.code,
+        sources: welcome.sources,
+        recommended_questions: welcome.recommended_questions
+      });
+    }
+
+    const unsub = saheliMemory.subscribe((hist) => {
+      if (hist.length > 0) {
+        setMessages(hist.map(m => ({
+          id: m.id,
+          role: m.role,
+          content: m.content,
+          sources: m.sources,
+          recommended_questions: m.recommended_questions,
+          mode: m.mode
+        })));
+      }
+    });
+
+    return () => unsub();
+  }, [currentUser]);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -196,37 +238,50 @@ export const AIGuidePage: React.FC<AIGuidePageProps> = ({
     if (synthRef.current) synthRef.current.cancel();
     setSpeakingMessageId(null);
 
-    const userMsg: ChatMessage = {
-      id: `usr_${Date.now()}`,
+    saheliMemory.addMessage({
       role: 'user',
-      content: text.trim()
-    };
-    setMessages((prev) => [...prev, userMsg]);
+      content: text.trim(),
+      mode: 'text',
+      languageCode: currentLangMeta.code
+    });
+
     setInput('');
     setLoading(true);
 
     try {
-      const contextualPrompt = `[Language: ${currentLangMeta.name}]. ${text.trim()}`;
+      const contextSummary = saheliMemory.getContextSummary(2);
+      const contextualPrompt = contextSummary
+        ? `[Conversation context:\n${contextSummary}\n]\n[Language: ${currentLangMeta.name}]. ${text.trim()}`
+        : `[Language: ${currentLangMeta.name}]. ${text.trim()}`;
+
       const resp = await api.askAIGuide(currentUser.id, contextualPrompt);
-      const aiMsg: ChatMessage = {
-        id: `ai_${Date.now()}`,
+      const newMsg = saheliMemory.addMessage({
         role: 'assistant',
         content: resp.reply,
+        mode: 'text',
+        languageCode: currentLangMeta.code,
         sources: resp.sources,
-        recommended_questions: resp.recommended_questions,
-        disclaimer: resp.medical_disclaimer
-      };
-      setMessages((prev) => [...prev, aiMsg]);
+        recommended_questions: resp.recommended_questions
+      });
+
+      if (readAloudEnabled) {
+        handleSpeak(newMsg.id, resp.reply);
+      }
     } catch (e) {
       console.error(e);
-      const fallbackMsg: ChatMessage = {
-        id: `ai_${Date.now()}`,
+      const fallbackReply = "I am here with you. Remember to maintain gentle hydration, rest comfortably with a warm compress if experiencing cramps, and listen to your body.";
+      const newMsg = saheliMemory.addMessage({
         role: 'assistant',
-        content: "I am here with you. Remember to maintain gentle hydration, rest comfortably with a warm compress if experiencing cramps, and listen to your body.",
+        content: fallbackReply,
+        mode: 'text',
+        languageCode: currentLangMeta.code,
         sources: ["Clinical Lifestyle Guidelines"],
         recommended_questions: ["How to relieve period cramps naturally?"]
-      };
-      setMessages((prev) => [...prev, fallbackMsg]);
+      });
+
+      if (readAloudEnabled) {
+        handleSpeak(newMsg.id, fallbackReply);
+      }
     } finally {
       setLoading(false);
     }
@@ -452,6 +507,20 @@ export const AIGuidePage: React.FC<AIGuidePageProps> = ({
               }`}
             >
               <Mic className="w-4 h-4" />
+            </button>
+
+            {/* Read-Aloud Toggle Button */}
+            <button
+              type="button"
+              onClick={() => setReadAloudEnabled(!readAloudEnabled)}
+              title={readAloudEnabled ? "Read-aloud is ON (Saheli speaks text replies)" : "Read-aloud is OFF (Silent text replies)"}
+              className={`p-2.5 rounded-2xl border transition shadow-2xs shrink-0 ${
+                readAloudEnabled
+                  ? 'bg-rose-100 text-rose-700 border-rose-300'
+                  : 'bg-warm-cardMuted hover:bg-warm-border text-warm-textMuted border-warm-border'
+              }`}
+            >
+              {readAloudEnabled ? <Volume2 className="w-4 h-4 text-rose-600" /> : <VolumeX className="w-4 h-4" />}
             </button>
 
             {/* Text Input */}

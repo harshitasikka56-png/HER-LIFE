@@ -201,6 +201,9 @@ class NotificationPrefUpdate(BaseModel):
 # AI Chat
 class AIChatRequest(BaseModel):
     message: str
+    language: Optional[str] = None
+    chat_context: Optional[str] = None
+    is_voice: Optional[bool] = False
     context_topic: Optional[str] = None
 
 

@@ -1,6 +1,45 @@
-import React, { useState } from 'react';
-import { Bell, ShieldCheck, Eye, EyeOff, Check, Heart, X, Clock, Calendar, Droplets } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { 
+  Bell, 
+  BellOff, 
+  Volume2, 
+  VolumeX, 
+  Vibrate, 
+  Clock, 
+  Calendar, 
+  Droplets, 
+  Heart, 
+  Sparkles, 
+  Activity, 
+  Pill, 
+  MessageSquareHeart, 
+  ShieldCheck, 
+  Eye, 
+  EyeOff, 
+  Check, 
+  X, 
+  RotateCcw, 
+  Sliders, 
+  Play, 
+  Square, 
+  Plus, 
+  Trash2, 
+  Smartphone,
+  CheckCircle2,
+  AlertCircle
+} from 'lucide-react';
 import { Language, translations } from '../services/i18n';
+import { 
+  notificationService, 
+  AppNotificationSettings, 
+  CategoryKey, 
+  CategoryConfig,
+  CustomMedication,
+  DEFAULT_NOTIFICATION_SETTINGS 
+} from '../services/notificationService';
+import { soundStudio, RINGTONE_OPTIONS } from '../services/soundStudio';
+import { RingtonePickerModal } from './RingtonePickerModal';
+import { useBackHandler } from '../services/backNavigation';
 
 interface PreNotificationModalProps {
   isOpen: boolean;
@@ -11,6 +50,8 @@ interface PreNotificationModalProps {
   onTriggerToast: (title: string, body: string) => void;
 }
 
+type TabKey = 'master' | 'categories' | 'medications' | 'test';
+
 export const PreNotificationModal: React.FC<PreNotificationModalProps> = ({
   isOpen,
   onClose,
@@ -19,296 +60,888 @@ export const PreNotificationModal: React.FC<PreNotificationModalProps> = ({
   language,
   onTriggerToast
 }) => {
-  const t = translations[language].notifications;
   const isHinglish = language === 'hinglish';
+  const t = translations[language]?.notifications || translations['en'].notifications;
 
-  const [advanceDays, setAdvanceDays] = useState<number>(2);
-  const [periodAlertEnabled, setPeriodAlertEnabled] = useState(true);
-  const [welcomeAlertEnabled, setWelcomeAlertEnabled] = useState(true);
-  const [ovulationAlertEnabled, setOvulationAlertEnabled] = useState(true);
-  const [checkinTime, setCheckinTime] = useState('20:00');
-  const [hydrationAlertEnabled, setHydrationAlertEnabled] = useState(true);
-  const [hydrationIntervalHours, setHydrationIntervalHours] = useState<number>(2);
-  const [quietHoursEnabled, setQuietHoursEnabled] = useState(true);
+  const [settings, setSettings] = useState<AppNotificationSettings>(notificationService.getSettings());
+  const [activeTab, setActiveTab] = useState<TabKey>('categories');
+  const [permissionGranted, setPermissionGranted] = useState<boolean | null>(null);
+  const [savedNotice, setSavedNotice] = useState<string>('');
+
+  // Ringtone picker modal state
+  const [ringtonePickerOpen, setRingtonePickerOpen] = useState(false);
+  const [targetCategoryForRingtone, setTargetCategoryForRingtone] = useState<CategoryKey | 'master'>('master');
+
+  // New medication form
+  const [newMedName, setNewMedName] = useState('');
+  const [newMedDosage, setNewMedDosage] = useState('');
+  const [newMedTime, setNewMedTime] = useState('20:00');
+  const [showAddMedForm, setShowAddMedForm] = useState(false);
+
+  // Playing preview tracking
+  const [playingRingtoneId, setPlayingRingtoneId] = useState<string | null>(null);
+
+  // Back button handling on Android
+  useBackHandler(
+    'notification_settings_modal',
+    75,
+    () => {
+      if (isOpen) {
+        soundStudio.stopPreview();
+        onClose();
+        return true;
+      }
+      return false;
+    },
+    isOpen
+  );
+
+  useEffect(() => {
+    if (isOpen) {
+      setSettings(notificationService.getSettings());
+      notificationService.checkPermissionStatus().then(setPermissionGranted);
+    } else {
+      soundStudio.stopPreview();
+    }
+  }, [isOpen]);
+
+  useEffect(() => {
+    const unsub = soundStudio.subscribePlaying(setPlayingRingtoneId);
+    return () => unsub();
+  }, []);
 
   if (!isOpen) return null;
 
-  function handleSendTestAlert(type: 'period' | 'welcome' | 'hydration' = 'period') {
-    if (type === 'welcome') {
-      const title = discreteMode 
-        ? "HerLife: Welcome to your safe space" 
-        : "HerLife: Welcome! Your cycle baseline is active";
-      const body = discreteMode
-        ? "Saheli is here whenever you need private guidance."
-        : "Your health sanctuary is set up. Feel free to talk with Saheli or log symptoms anytime.";
-      onTriggerToast(title, body);
-      return;
-    }
-
-    if (type === 'hydration') {
-      const title = discreteMode 
-        ? "Gentle Reminder: Take a moment" 
-        : "Hydration Alert: Time for a warm sip 💧";
-      const body = discreteMode
-        ? "Pause and refresh yourself."
-        : "Drink a glass of warm water or herbal tea to soothe uterine muscles and sustain energy.";
-      onTriggerToast(title, body);
-      return;
-    }
-
-    const title = discreteMode 
-      ? "Reminder: Scheduled Wellness Check-In" 
-      : `Advance Alert: Period Expected in ${advanceDays} Days`;
-
-    const body = discreteMode
-      ? "Time for your private health check-in."
-      : `Prepare your preferred cycle products and maintain optimal hydration. Rest and take it easy.`;
-
-    onTriggerToast(title, body);
+  function handleSaveAll() {
+    const updated = {
+      ...settings,
+      discreteMode
+    };
+    notificationService.saveSettings(updated);
+    setSavedNotice(isHinglish ? "Settings safalta se save ho gayi hain!" : "Notification settings saved successfully!");
+    onTriggerToast(
+      isHinglish ? "Notification Preferences Updated" : "Preferences Saved",
+      isHinglish ? "Aapke notification aur sound changes apply ho chuke hain." : "Your category alerts, sounds and quiet hours are updated."
+    );
+    setTimeout(() => setSavedNotice(''), 3000);
   }
 
+  function handleResetAll() {
+    const res = notificationService.resetToDefault();
+    setSettings(res);
+    setSavedNotice(isHinglish ? "Settings default par reset ho gayi hain." : "All notification settings reset to default.");
+    setTimeout(() => setSavedNotice(''), 3000);
+  }
+
+  function handleCategoryToggle(key: CategoryKey) {
+    setSettings(prev => ({
+      ...prev,
+      categories: {
+        ...prev.categories,
+        [key]: {
+          ...prev.categories[key],
+          enabled: !prev.categories[key].enabled
+        }
+      }
+    }));
+  }
+
+  function handleCategoryVibrationToggle(key: CategoryKey) {
+    setSettings(prev => ({
+      ...prev,
+      categories: {
+        ...prev.categories,
+        [key]: {
+          ...prev.categories[key],
+          vibration: !prev.categories[key].vibration
+        }
+      }
+    }));
+  }
+
+  function handleCategoryScheduleChange(key: CategoryKey, schedule: string) {
+    setSettings(prev => ({
+      ...prev,
+      categories: {
+        ...prev.categories,
+        [key]: {
+          ...prev.categories[key],
+          schedule
+        }
+      }
+    }));
+  }
+
+  function handleResetCategory(key: CategoryKey) {
+    const def = DEFAULT_NOTIFICATION_SETTINGS.categories[key];
+    setSettings(prev => ({
+      ...prev,
+      categories: {
+        ...prev.categories,
+        [key]: { ...def }
+      }
+    }));
+  }
+
+  function openRingtonePicker(target: CategoryKey | 'master') {
+    setTargetCategoryForRingtone(target);
+    setRingtonePickerOpen(true);
+  }
+
+  function handleSelectedRingtone(ringtoneId: string) {
+    if (targetCategoryForRingtone === 'master') {
+      setSettings(prev => ({
+        ...prev,
+        master: {
+          ...prev.master,
+          masterRingtone: ringtoneId
+        }
+      }));
+    } else {
+      setSettings(prev => ({
+        ...prev,
+        categories: {
+          ...prev.categories,
+          [targetCategoryForRingtone]: {
+            ...prev.categories[targetCategoryForRingtone],
+            ringtone: ringtoneId
+          }
+        }
+      }));
+    }
+  }
+
+  function handlePreviewRingtone(ringtoneId: string, e: React.MouseEvent) {
+    e.stopPropagation();
+    if (playingRingtoneId === ringtoneId) {
+      soundStudio.stopPreview();
+    } else {
+      soundStudio.playPreview(ringtoneId, settings.master.volume, true);
+    }
+  }
+
+  async function handleRequestPermission() {
+    const granted = await notificationService.requestPermission();
+    setPermissionGranted(granted);
+    if (granted) {
+      onTriggerToast(
+        "Android Permission Granted",
+        "HER LIFE can now deliver timely cycle, hydration and medicine alerts."
+      );
+    }
+  }
+
+  async function handleSendTest(categoryKey: CategoryKey) {
+    const res = await notificationService.triggerTestNotification(categoryKey);
+    onTriggerToast(res.title, res.body);
+  }
+
+  function handleAddMedication(e: React.FormEvent) {
+    e.preventDefault();
+    if (!newMedName.trim()) return;
+
+    const newMed: CustomMedication = {
+      id: `med_${Date.now()}`,
+      name: newMedName.trim(),
+      dosage: newMedDosage.trim() || 'As directed',
+      time: newMedTime || '20:00',
+      enabled: true,
+      days: 'Daily'
+    };
+
+    setSettings(prev => ({
+      ...prev,
+      medications: [...prev.medications, newMed]
+    }));
+
+    setNewMedName('');
+    setNewMedDosage('');
+    setShowAddMedForm(false);
+  }
+
+  function handleDeleteMedication(id: string) {
+    setSettings(prev => ({
+      ...prev,
+      medications: prev.medications.filter(m => m.id !== id)
+    }));
+  }
+
+  function handleToggleMedication(id: string) {
+    setSettings(prev => ({
+      ...prev,
+      medications: prev.medications.map(m => m.id === id ? { ...m, enabled: !m.enabled } : m)
+    }));
+  }
+
+  const categoryIcons: Record<string, React.FC<{ className?: string }>> = {
+    Calendar,
+    Heart,
+    Droplets,
+    Sparkles,
+    Activity,
+    Pill,
+    MessageSquareHeart,
+    Bell
+  };
+
+  const getTargetTitle = () => {
+    if (targetCategoryForRingtone === 'master') return 'Master Notification Sound';
+    return settings.categories[targetCategoryForRingtone]?.title || 'Category Sound';
+  };
+
+  const currentSelectedRingtoneId = () => {
+    if (targetCategoryForRingtone === 'master') return settings.master.masterRingtone;
+    return settings.categories[targetCategoryForRingtone]?.ringtone || 'default';
+  };
+
   return (
-    <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
-      <div className="bg-white rounded-3xl p-6 max-w-lg w-full border border-warm-border shadow-soft-lg space-y-5 max-h-[90vh] overflow-y-auto">
-        {/* Header */}
-        <div className="flex items-center justify-between pb-3 border-b border-warm-border">
-          <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-2xl bg-brand-50 text-brand-600 flex items-center justify-center">
-              <Bell className="w-5 h-5" />
+    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 animate-fade-in">
+      <div className="bg-white rounded-3xl p-4 sm:p-6 max-w-2xl w-full border border-warm-border shadow-2xl flex flex-col h-[94vh] sm:h-[90vh] max-h-[94vh] overflow-hidden">
+        
+        {/* Top Header */}
+        <div className="flex items-center justify-between pb-3 border-b border-warm-border shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center border border-rose-100 shadow-xs">
+              <Bell className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
             <div>
-              <h3 className="text-base font-bold text-warm-textDark font-serif">{t.title}</h3>
-              <p className="text-xs text-warm-textMuted">{t.subtitle}</p>
+              <div className="flex items-center gap-2">
+                <h3 className="text-base sm:text-lg font-bold text-warm-textDark font-serif">
+                  {isHinglish ? "Notification & Voice Settings" : "Smart Notification Settings"}
+                </h3>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 uppercase tracking-wider">
+                  Pro Control
+                </span>
+              </div>
+              <p className="text-xs text-warm-textMuted">
+                {isHinglish 
+                  ? "Ringtones, vibration, category alerts aur quiet hours ka poora control"
+                  : "Complete control over reminders, sounds, vibration & categories"}
+              </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-xl hover:bg-warm-cardMuted text-warm-textMuted hover:text-warm-textDark transition"
+            className="p-2 rounded-xl text-warm-textMuted hover:text-warm-textDark hover:bg-warm-cardMuted transition"
+            title="Close"
           >
-            <X className="w-4 h-4" />
+            <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* 1. Advance Period Pre-Notification Settings */}
-        <div className="p-4 bg-brand-50/60 rounded-2xl border border-brand-100 space-y-3">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-brand-800 flex items-center gap-1.5">
-              <Calendar className="w-4 h-4 text-brand-600" />
-              {t.advance_warning}
-            </span>
-            <input
-              type="checkbox"
-              checked={periodAlertEnabled}
-              onChange={(e) => setPeriodAlertEnabled(e.target.checked)}
-              className="rounded text-brand-500 focus:ring-brand-400"
-            />
+        {/* Saved Success Toast within modal */}
+        {savedNotice && (
+          <div className="my-2 p-2.5 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-xs flex items-center gap-2 animate-fade-in shrink-0">
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+            <span className="font-medium">{savedNotice}</span>
           </div>
+        )}
 
-          <p className="text-[11px] text-warm-textMuted leading-relaxed">
-            {t.advance_desc}
-          </p>
+        {/* Tab Navigation */}
+        <div className="flex items-center gap-1.5 pt-3 pb-2 border-b border-warm-border/60 shrink-0 overflow-x-auto no-scrollbar">
+          <button
+            type="button"
+            onClick={() => setActiveTab('categories')}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 ${
+              activeTab === 'categories'
+                ? 'bg-rose-600 text-white shadow-xs'
+                : 'bg-warm-cardMuted text-warm-textMuted hover:text-warm-textDark hover:bg-warm-border'
+            }`}
+          >
+            <Bell className="w-3.5 h-3.5" />
+            {isHinglish ? "8 Categories" : "Categories (8)"}
+          </button>
 
-          <div className="flex items-center gap-2 pt-1">
-            <span className="text-xs font-semibold text-warm-textDark">
-              {isHinglish ? "Kitne din pehle alert chahiye:" : "Notify me in advance:"}
+          <button
+            type="button"
+            onClick={() => setActiveTab('master')}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 ${
+              activeTab === 'master'
+                ? 'bg-rose-600 text-white shadow-xs'
+                : 'bg-warm-cardMuted text-warm-textMuted hover:text-warm-textDark hover:bg-warm-border'
+            }`}
+          >
+            <Sliders className="w-3.5 h-3.5" />
+            {isHinglish ? "Master Controls" : "Master Controls"}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('medications')}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 ${
+              activeTab === 'medications'
+                ? 'bg-rose-600 text-white shadow-xs'
+                : 'bg-warm-cardMuted text-warm-textMuted hover:text-warm-textDark hover:bg-warm-border'
+            }`}
+          >
+            <Pill className="w-3.5 h-3.5" />
+            {isHinglish ? "Medicines" : "My Medications"}
+            <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-black/10">
+              {settings.medications.length}
             </span>
-            <div className="flex gap-1.5">
-              {[1, 2, 3].map((days) => (
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('test')}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 ${
+              activeTab === 'test'
+                ? 'bg-rose-600 text-white shadow-xs'
+                : 'bg-warm-cardMuted text-warm-textMuted hover:text-warm-textDark hover:bg-warm-border'
+            }`}
+          >
+            <Play className="w-3.5 h-3.5" />
+            {isHinglish ? "Live Test" : "Test Notifications"}
+          </button>
+        </div>
+
+        {/* Scrollable Content Body */}
+        <div className="flex-1 overflow-y-auto py-3 space-y-4 pr-1">
+
+          {/* TAB 1: 8 CATEGORIES */}
+          {activeTab === 'categories' && (
+            <div className="space-y-3">
+              <div className="p-3 bg-rose-50/60 rounded-2xl border border-rose-100 flex items-center justify-between">
+                <div>
+                  <h4 className="text-xs font-bold text-rose-900">Independent Category Settings</h4>
+                  <p className="text-[11px] text-rose-700/80">Customize sound, vibration and schedule separately for each notification type.</p>
+                </div>
                 <button
                   type="button"
-                  key={days}
-                  onClick={() => setAdvanceDays(days)}
-                  className={`px-3 py-1 rounded-xl text-xs font-bold border transition ${
-                    advanceDays === days
-                      ? 'bg-brand-500 text-white border-brand-500 shadow-xs'
-                      : 'bg-white text-warm-textDark border-warm-border hover:bg-warm-cardMuted'
-                  }`}
+                  onClick={onToggleDiscrete}
+                  className="px-2.5 py-1.5 rounded-xl bg-white border border-rose-200 text-[11px] font-bold text-rose-800 hover:bg-rose-50 transition flex items-center gap-1 shadow-2xs"
+                  title="Toggle Lockscreen Privacy (Parda Mode)"
                 >
-                  {days} {isHinglish ? "Din Pehle" : days === 1 ? "Day Before" : "Days Before"}
+                  {discreteMode ? <EyeOff className="w-3.5 h-3.5 text-rose-600" /> : <Eye className="w-3.5 h-3.5 text-gray-500" />}
+                  <span>{discreteMode ? "Discrete ON" : "Discrete OFF"}</span>
                 </button>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* 2. Discrete Notification Preview Mode (Privacy Requirement) */}
-        <div className="p-4 bg-warm-cardMuted/70 rounded-2xl border border-warm-border space-y-2">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              {discreteMode ? <EyeOff className="w-4 h-4 text-plum-600" /> : <Eye className="w-4 h-4 text-warm-textMuted" />}
-              <span className="text-xs font-bold text-warm-textDark">
-                {isHinglish ? "Discrete Mode (Parda / Privacy Mode)" : "Discrete Mode (Mask Sensitive Words)"}
-              </span>
-            </div>
-            <button
-              onClick={onToggleDiscrete}
-              className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ${
-                discreteMode ? 'bg-plum-700' : 'bg-gray-200'
-              }`}
-            >
-              <span
-                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow transition duration-200 ${
-                  discreteMode ? 'translate-x-5' : 'translate-x-0'
-                }`}
-              />
-            </button>
-          </div>
-
-          <div className="text-[11px] space-y-1 pt-1 text-warm-textMuted">
-            <div className="flex justify-between">
-              <span>{isHinglish ? "Lockscreen Par Kaisa Dikhega:" : "Lockscreen Preview:"}</span>
-              <span className="font-bold text-plum-700">
-                {discreteMode 
-                  ? (isHinglish ? '"Reminder: Personal Check-In"' : '"Reminder: Personal Check-In"')
-                  : (isHinglish ? `"Alert: Period ${advanceDays} din mein expected"` : `"Alert: Period in ${advanceDays} days"`)}
-              </span>
-            </div>
-            <p className="text-[10px] text-warm-textMuted italic">
-              {isHinglish 
-                ? "* Discrete mode mein lockscreen par period ya bleeding ka naam nahi aayega."
-                : "* Discrete mode ensures friends or family glancing at your phone cannot see private health details."}
-            </p>
-          </div>
-        </div>
-
-        {/* 3. Daily & Lifestyle Reminders */}
-        <div className="space-y-3">
-          {/* Welcome Notification 1 Hour Post-Onboarding */}
-          <div className="flex items-center justify-between p-3 rounded-2xl border border-warm-border bg-white text-xs">
-            <div className="flex items-center gap-2">
-              <Heart className="w-4 h-4 text-brand-600 fill-brand-100" />
-              <div>
-                <span className="font-bold text-warm-textDark">
-                  {isHinglish ? "Welcome Notification (1 Ghante Baad)" : "Welcome Notification (1 Hr Post-Onboarding)"}
-                </span>
-                <p className="text-[10px] text-warm-textMuted">
-                  {isHinglish ? "Onboarding ke baad Saheli ka pehla comforting check-in" : "Initial gentle check-in from Saheli once your profile is set up"}
-                </p>
               </div>
-            </div>
-            <input
-              type="checkbox"
-              checked={welcomeAlertEnabled}
-              onChange={(e) => setWelcomeAlertEnabled(e.target.checked)}
-              className="rounded text-brand-500 focus:ring-brand-400"
-            />
-          </div>
 
-          {/* Daily Evening Check-In */}
-          <div className="flex items-center justify-between p-3 rounded-2xl border border-warm-border bg-white text-xs">
-            <div className="flex items-center gap-2">
-              <Clock className="w-4 h-4 text-indigo-500" />
-              <div>
-                <span className="font-bold text-warm-textDark">
-                  {isHinglish ? "Roz Sham Ka Check-In Reminder" : "Daily Evening Check-In Reminder"}
-                </span>
-                <p className="text-[10px] text-warm-textMuted">
-                  {isHinglish ? "Rozana symptoms aur stress log karne ke liye" : "To log symptoms, stress, and mood"}
-                </p>
-              </div>
-            </div>
-            <input
-              type="time"
-              value={checkinTime}
-              onChange={(e) => setCheckinTime(e.target.value)}
-              className="text-xs p-1.5 rounded-lg border border-warm-border focus:ring-1 focus:ring-brand-400"
-            />
-          </div>
+              {(Object.keys(settings.categories) as CategoryKey[]).map((key, idx) => {
+                const cat = settings.categories[key];
+                const IconComponent = categoryIcons[cat.icon] || Bell;
+                const ringtone = RINGTONE_OPTIONS.find(r => r.id === cat.ringtone) || RINGTONE_OPTIONS[0];
+                const isPlaying = playingRingtoneId === ringtone.id;
 
-          {/* Hydration & Paani Alerts */}
-          <div className="p-3 rounded-2xl border border-warm-border bg-white text-xs space-y-2">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Droplets className="w-4 h-4 text-cyan-500" />
-                <div>
-                  <span className="font-bold text-warm-textDark">
-                    {isHinglish ? "Paani Peene Ka Reminder (Hydration Alert)" : "Smart Hydration Prompts"}
-                  </span>
-                  <p className="text-[10px] text-warm-textMuted">
-                    {isHinglish ? "Uterine cramps aur fatigue kam karne ke liye" : "Supports pelvic blood flow and reduces fatigue"}
-                  </p>
-                </div>
-              </div>
-              <input
-                type="checkbox"
-                checked={hydrationAlertEnabled}
-                onChange={(e) => setHydrationAlertEnabled(e.target.checked)}
-                className="rounded text-brand-500 focus:ring-brand-400"
-              />
-            </div>
+                return (
+                  <div 
+                    key={cat.id}
+                    className={`p-3.5 sm:p-4 rounded-2xl border transition-all ${
+                      cat.enabled 
+                        ? 'bg-white border-warm-border shadow-2xs' 
+                        : 'bg-warm-cardMuted/40 border-warm-border/60 opacity-70'
+                    }`}
+                  >
+                    {/* Top Row: Icon, Title & Enable Switch */}
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${
+                          cat.enabled ? 'bg-rose-100 text-rose-700' : 'bg-gray-100 text-gray-400'
+                        }`}>
+                          <IconComponent className="w-4 h-4" />
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-xs font-bold text-warm-textDark truncate">{idx + 1}. {cat.title}</span>
+                          </div>
+                          <p className="text-[11px] text-warm-textMuted line-clamp-1">{cat.description}</p>
+                        </div>
+                      </div>
 
-            {hydrationAlertEnabled && (
-              <div className="pt-2 border-t border-warm-border/60 space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] text-warm-textMuted font-medium">Frequency:</span>
-                  <div className="flex gap-1.5">
-                    {[1.5, 2, 3, 4].map((hrs) => (
                       <button
-                        key={hrs}
                         type="button"
-                        onClick={() => setHydrationIntervalHours(hrs)}
-                        className={`px-2 py-0.5 rounded-lg text-[10px] font-bold border transition ${
-                          hydrationIntervalHours === hrs
-                            ? 'bg-cyan-600 text-white border-cyan-600'
-                            : 'bg-warm-cardMuted text-warm-textDark border-warm-border'
+                        onClick={() => handleCategoryToggle(key)}
+                        className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ${
+                          cat.enabled ? 'bg-rose-600' : 'bg-gray-200'
                         }`}
                       >
-                        Every {hrs}h
+                        <span
+                          className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow transition duration-200 ${
+                            cat.enabled ? 'translate-x-5' : 'translate-x-0'
+                          }`}
+                        />
                       </button>
-                    ))}
+                    </div>
+
+                    {/* Controls Row (Active only when enabled) */}
+                    {cat.enabled && (
+                      <div className="mt-3 pt-3 border-t border-warm-border/60 grid grid-cols-1 sm:grid-cols-3 gap-2">
+                        
+                        {/* Sound & Preview */}
+                        <div className="flex items-center justify-between p-2 rounded-xl bg-warm-cardMuted/60 border border-warm-border/60">
+                          <button
+                            type="button"
+                            onClick={() => openRingtonePicker(key)}
+                            className="flex items-center gap-1.5 text-left min-w-0 flex-1 hover:text-rose-600 transition"
+                          >
+                            <Volume2 className="w-3.5 h-3.5 text-rose-600 shrink-0" />
+                            <div className="min-w-0">
+                              <span className="text-[10px] text-warm-textMuted block">Sound</span>
+                              <span className="text-xs font-bold text-warm-textDark truncate block">{ringtone.name}</span>
+                            </div>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => handlePreviewRingtone(ringtone.id, e)}
+                            className={`w-7 h-7 rounded-lg flex items-center justify-center transition shrink-0 ${
+                              isPlaying ? 'bg-rose-600 text-white' : 'bg-white text-warm-textDark hover:bg-rose-100'
+                            }`}
+                            title={isPlaying ? "Stop" : "Preview"}
+                          >
+                            {isPlaying ? <Square className="w-3 h-3 fill-white" /> : <Play className="w-3 h-3 fill-current ml-0.5" />}
+                          </button>
+                        </div>
+
+                        {/* Vibration Toggle */}
+                        <button
+                          type="button"
+                          onClick={() => handleCategoryVibrationToggle(key)}
+                          className={`flex items-center justify-between p-2 rounded-xl border transition ${
+                            cat.vibration ? 'bg-rose-50/60 border-rose-200 text-rose-800' : 'bg-warm-cardMuted/60 border-warm-border/60 text-warm-textMuted'
+                          }`}
+                        >
+                          <div className="flex items-center gap-1.5">
+                            <Vibrate className="w-3.5 h-3.5" />
+                            <div className="text-left">
+                              <span className="text-[10px] block">Vibration</span>
+                              <span className="text-xs font-bold block">{cat.vibration ? "Enabled" : "Off"}</span>
+                            </div>
+                          </div>
+                          <span className={`w-2 h-2 rounded-full ${cat.vibration ? 'bg-rose-600' : 'bg-gray-300'}`} />
+                        </button>
+
+                        {/* Schedule / Frequency */}
+                        <div className="p-2 rounded-xl bg-warm-cardMuted/60 border border-warm-border/60 flex items-center justify-between">
+                          <div className="min-w-0 flex-1">
+                            <span className="text-[10px] text-warm-textMuted block">Timing</span>
+                            <select
+                              value={cat.schedule}
+                              onChange={(e) => handleCategoryScheduleChange(key, e.target.value)}
+                              className="text-xs font-bold text-warm-textDark bg-transparent border-0 p-0 focus:ring-0 cursor-pointer w-full"
+                            >
+                              {cat.frequencyOptions.map(opt => (
+                                <option key={opt} value={opt}>{opt}</option>
+                              ))}
+                            </select>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleResetCategory(key)}
+                            className="p-1 text-warm-textMuted hover:text-warm-textDark transition ml-1"
+                            title="Reset Category to Default"
+                          >
+                            <RotateCcw className="w-3 h-3" />
+                          </button>
+                        </div>
+
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* TAB 2: MASTER CONTROLS */}
+          {activeTab === 'master' && (
+            <div className="space-y-4">
+              
+              {/* Permission Banner */}
+              <div className="p-4 rounded-2xl border bg-gradient-to-r from-amber-50 to-orange-50 border-amber-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-800 flex items-center justify-center shrink-0">
+                    <Smartphone className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-amber-900">Android Notification Permission</h4>
+                    <p className="text-[11px] text-amber-800">
+                      Status: <strong className={permissionGranted ? "text-emerald-700" : "text-rose-700"}>
+                        {permissionGranted === true ? "Granted (Active)" : permissionGranted === false ? "Denied in Settings" : "System Prompt Required"}
+                      </strong>
+                    </p>
+                  </div>
+                </div>
+                {!permissionGranted && (
+                  <button
+                    type="button"
+                    onClick={handleRequestPermission}
+                    className="w-full sm:w-auto px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold shadow-xs transition"
+                  >
+                    Grant Permission
+                  </button>
+                )}
+              </div>
+
+              {/* Master Toggles Grid */}
+              <div className="p-4 rounded-2xl bg-white border border-warm-border space-y-4">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-warm-textMuted font-mono">Master System Controls</h4>
+
+                {/* 1. All Notifications Toggle */}
+                <div className="flex items-center justify-between pb-3 border-b border-warm-border">
+                  <div className="flex items-center gap-2.5">
+                    {settings.master.enabled ? <Bell className="w-4 h-4 text-rose-600" /> : <BellOff className="w-4 h-4 text-gray-400" />}
+                    <div>
+                      <span className="text-xs font-bold text-warm-textDark block">Allow All Notifications</span>
+                      <span className="text-[11px] text-warm-textMuted">Master switch for all period, ovulation, water & wellness alerts</span>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setSettings(p => ({ ...p, master: { ...p.master, enabled: !p.master.enabled } }))}
+                    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ${
+                      settings.master.enabled ? 'bg-rose-600' : 'bg-gray-200'
+                    }`}
+                  >
+                    <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow transition duration-200 ${
+                      settings.master.enabled ? 'translate-x-5' : 'translate-x-0'
+                    }`} />
+                  </button>
+                </div>
+
+                {/* 2. Sound Toggle */}
+                <div className="flex items-center justify-between pb-3 border-b border-warm-border">
+                  <div className="flex items-center gap-2.5">
+                    {settings.master.soundEnabled ? <Volume2 className="w-4 h-4 text-rose-600" /> : <VolumeX className="w-4 h-4 text-gray-400" />}
+                    <div>
+                      <span className="text-xs font-bold text-warm-textDark block">Notification Sound</span>
+                      <span className="text-[11px] text-warm-textMuted">Play ringtone audio with incoming reminders</span>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setSettings(p => ({ ...p, master: { ...p.master, soundEnabled: !p.master.soundEnabled } }))}
+                    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ${
+                      settings.master.soundEnabled ? 'bg-rose-600' : 'bg-gray-200'
+                    }`}
+                  >
+                    <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow transition duration-200 ${
+                      settings.master.soundEnabled ? 'translate-x-5' : 'translate-x-0'
+                    }`} />
+                  </button>
+                </div>
+
+                {/* 3. Vibration Toggle */}
+                <div className="flex items-center justify-between pb-3 border-b border-warm-border">
+                  <div className="flex items-center gap-2.5">
+                    <Vibrate className="w-4 h-4 text-rose-600" />
+                    <div>
+                      <span className="text-xs font-bold text-warm-textDark block">Device Vibration</span>
+                      <span className="text-[11px] text-warm-textMuted">Haptic pulse when notification fires</span>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setSettings(p => ({ ...p, master: { ...p.master, vibrationEnabled: !p.master.vibrationEnabled } }))}
+                    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ${
+                      settings.master.vibrationEnabled ? 'bg-rose-600' : 'bg-gray-200'
+                    }`}
+                  >
+                    <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow transition duration-200 ${
+                      settings.master.vibrationEnabled ? 'translate-x-5' : 'translate-x-0'
+                    }`} />
+                  </button>
+                </div>
+
+                {/* 4. Master Ringtone Selection */}
+                <div className="flex items-center justify-between pb-3 border-b border-warm-border">
+                  <div>
+                    <span className="text-xs font-bold text-warm-textDark block">Default Ringtone</span>
+                    <span className="text-[11px] text-warm-textMuted">Fallback tone for any notification without custom sound</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => openRingtonePicker('master')}
+                      className="px-3 py-1.5 rounded-xl bg-warm-cardMuted hover:bg-warm-border text-xs font-bold text-warm-textDark border border-warm-border transition"
+                    >
+                      {RINGTONE_OPTIONS.find(r => r.id === settings.master.masterRingtone)?.name || 'Default'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => handlePreviewRingtone(settings.master.masterRingtone, e)}
+                      className="w-8 h-8 rounded-xl bg-rose-50 text-rose-600 hover:bg-rose-100 flex items-center justify-center transition"
+                      title="Preview master ringtone"
+                    >
+                      <Play className="w-3.5 h-3.5 fill-current" />
+                    </button>
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between text-[11px]">
-                  <span className="text-warm-textMuted">Quiet Hours (10 PM – 7 AM):</span>
-                  <button
-                    type="button"
-                    onClick={() => setQuietHoursEnabled(!quietHoursEnabled)}
-                    className={`px-2 py-0.5 rounded-lg text-[10px] font-bold transition ${
-                      quietHoursEnabled ? 'bg-indigo-100 text-indigo-700' : 'bg-gray-100 text-gray-500'
-                    }`}
-                  >
-                    {quietHoursEnabled ? 'Silenced at Night' : 'Always Active'}
-                  </button>
+                {/* 5. Notification Volume */}
+                <div className="space-y-1.5 pb-3 border-b border-warm-border">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-warm-textDark">Notification Volume</span>
+                    <span className="text-xs font-mono font-bold text-rose-600">{settings.master.volume}%</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="10"
+                    max="100"
+                    value={settings.master.volume}
+                    onChange={(e) => setSettings(p => ({ ...p, master: { ...p.master, volume: Number(e.target.value) } }))}
+                    className="w-full accent-rose-600 cursor-pointer"
+                  />
                 </div>
+
+                {/* 6. Quiet Hours (Do Not Disturb) */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Clock className="w-4 h-4 text-plum-600" />
+                      <span className="text-xs font-bold text-warm-textDark">Quiet Hours (Do Not Disturb)</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setSettings(p => ({ ...p, master: { ...p.master, quietHoursEnabled: !p.master.quietHoursEnabled } }))}
+                      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ${
+                        settings.master.quietHoursEnabled ? 'bg-plum-700' : 'bg-gray-200'
+                      }`}
+                    >
+                      <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow transition duration-200 ${
+                        settings.master.quietHoursEnabled ? 'translate-x-5' : 'translate-x-0'
+                      }`} />
+                    </button>
+                  </div>
+                  {settings.master.quietHoursEnabled && (
+                    <div className="flex items-center gap-3 pt-1">
+                      <div className="flex-1 p-2 rounded-xl bg-warm-cardMuted border border-warm-border">
+                        <span className="text-[10px] text-warm-textMuted block">Mute From:</span>
+                        <input
+                          type="time"
+                          value={settings.master.quietHoursStart}
+                          onChange={(e) => setSettings(p => ({ ...p, master: { ...p.master, quietHoursStart: e.target.value } }))}
+                          className="text-xs font-bold text-warm-textDark bg-transparent border-0 p-0 focus:ring-0 w-full"
+                        />
+                      </div>
+                      <span className="text-xs text-warm-textMuted font-bold">to</span>
+                      <div className="flex-1 p-2 rounded-xl bg-warm-cardMuted border border-warm-border">
+                        <span className="text-[10px] text-warm-textMuted block">Wake At:</span>
+                        <input
+                          type="time"
+                          value={settings.master.quietHoursEnd}
+                          onChange={(e) => setSettings(p => ({ ...p, master: { ...p.master, quietHoursEnd: e.target.value } }))}
+                          className="text-xs font-bold text-warm-textDark bg-transparent border-0 p-0 focus:ring-0 w-full"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+
               </div>
-            )}
+
+            </div>
+          )}
+
+          {/* TAB 3: MEDICATIONS */}
+          {activeTab === 'medications' && (
+            <div className="space-y-3">
+              <div className="p-3 bg-purple-50 rounded-2xl border border-purple-100 flex items-center justify-between">
+                <div>
+                  <h4 className="text-xs font-bold text-purple-900">Custom Medication & Supplement Reminders</h4>
+                  <p className="text-[11px] text-purple-700">Only medicines and supplements you explicitly add will trigger reminders.</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowAddMedForm(!showAddMedForm)}
+                  className="px-3 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold shadow-xs transition flex items-center gap-1"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  Add Medicine
+                </button>
+              </div>
+
+              {/* Add form */}
+              {showAddMedForm && (
+                <form onSubmit={handleAddMedication} className="p-4 bg-white rounded-2xl border border-purple-200 shadow-xs space-y-3 animate-fade-in">
+                  <h5 className="text-xs font-bold text-warm-textDark">Add New Pill or Supplement Reminder</h5>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    <div>
+                      <label className="text-[10px] text-warm-textMuted block font-bold mb-1">Medicine Name</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Iron & Folic Acid"
+                        value={newMedName}
+                        onChange={(e) => setNewMedName(e.target.value)}
+                        className="w-full px-3 py-2 rounded-xl border border-warm-border text-xs focus:ring-1 focus:ring-purple-400"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] text-warm-textMuted block font-bold mb-1">Dosage / Notes</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. 1 Tablet after lunch"
+                        value={newMedDosage}
+                        onChange={(e) => setNewMedDosage(e.target.value)}
+                        className="w-full px-3 py-2 rounded-xl border border-warm-border text-xs focus:ring-1 focus:ring-purple-400"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] text-warm-textMuted block font-bold mb-1">Reminder Time</label>
+                      <input
+                        type="time"
+                        value={newMedTime}
+                        onChange={(e) => setNewMedTime(e.target.value)}
+                        className="w-full px-3 py-2 rounded-xl border border-warm-border text-xs focus:ring-1 focus:ring-purple-400 font-bold"
+                        required
+                      />
+                    </div>
+                  </div>
+                  <div className="flex justify-end gap-2 pt-1">
+                    <button
+                      type="button"
+                      onClick={() => setShowAddMedForm(false)}
+                      className="px-3 py-1.5 rounded-xl border border-warm-border text-xs text-warm-textDark hover:bg-warm-cardMuted"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      className="px-4 py-1.5 rounded-xl bg-purple-600 text-white text-xs font-bold hover:bg-purple-700"
+                    >
+                      Save Reminder
+                    </button>
+                  </div>
+                </form>
+              )}
+
+              {/* Medication List */}
+              <div className="space-y-2">
+                {settings.medications.length === 0 ? (
+                  <div className="p-8 text-center bg-warm-cardMuted/40 rounded-2xl border border-warm-border">
+                    <Pill className="w-8 h-8 text-warm-textMuted mx-auto mb-2 opacity-50" />
+                    <p className="text-xs text-warm-textMuted">No medication reminders added yet.</p>
+                    <p className="text-[11px] text-warm-textMuted/80">Tap 'Add Medicine' to schedule your daily vitamins, iron, or supplements.</p>
+                  </div>
+                ) : (
+                  settings.medications.map((med) => (
+                    <div 
+                      key={med.id}
+                      className="p-3.5 rounded-2xl bg-white border border-warm-border flex items-center justify-between gap-3 shadow-2xs"
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${
+                          med.enabled ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-400'
+                        }`}>
+                          <Pill className="w-4 h-4" />
+                        </div>
+                        <div className="min-w-0">
+                          <span className="text-xs font-bold text-warm-textDark block truncate">{med.name}</span>
+                          <span className="text-[11px] text-warm-textMuted block truncate">{med.dosage} • Time: {med.time}</span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => handleToggleMedication(med.id)}
+                          className={`px-2.5 py-1 rounded-lg text-[11px] font-bold border transition ${
+                            med.enabled 
+                              ? 'bg-purple-50 text-purple-700 border-purple-200' 
+                              : 'bg-gray-100 text-gray-500 border-gray-200'
+                          }`}
+                        >
+                          {med.enabled ? 'Active' : 'Paused'}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteMedication(med.id)}
+                          className="p-1.5 rounded-lg text-warm-textMuted hover:text-rose-600 hover:bg-rose-50 transition"
+                          title="Delete medication"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+
+            </div>
+          )}
+
+          {/* TAB 4: LIVE TEST NOTIFICATIONS */}
+          {activeTab === 'test' && (
+            <div className="space-y-3">
+              <div className="p-3 bg-brand-50/70 rounded-2xl border border-brand-100">
+                <h4 className="text-xs font-bold text-brand-900">Realtime Notification Simulator</h4>
+                <p className="text-[11px] text-brand-800">
+                  Tap any card below to test how real Android notification channels, sounds, and banners behave on your device right now.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                {(Object.keys(settings.categories) as CategoryKey[]).map((key) => {
+                  const cat = settings.categories[key];
+                  const Icon = categoryIcons[cat.icon] || Bell;
+
+                  return (
+                    <button
+                      type="button"
+                      key={key}
+                      onClick={() => handleSendTest(key)}
+                      className="p-3 rounded-2xl bg-white border border-warm-border hover:border-rose-300 hover:bg-rose-50/30 transition text-left flex items-center justify-between group active:scale-98 shadow-2xs"
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="w-8 h-8 rounded-xl bg-warm-cardMuted text-warm-textDark group-hover:bg-rose-100 group-hover:text-rose-600 flex items-center justify-center shrink-0 transition">
+                          <Icon className="w-4 h-4" />
+                        </div>
+                        <div className="min-w-0">
+                          <span className="text-xs font-bold text-warm-textDark block truncate">{cat.title}</span>
+                          <span className="text-[10px] text-warm-textMuted block">Plays {cat.ringtone} sound</span>
+                        </div>
+                      </div>
+                      <Play className="w-3.5 h-3.5 text-rose-500 opacity-0 group-hover:opacity-100 transition shrink-0" />
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+        </div>
+
+        {/* Bottom Actions Bar */}
+        <div className="pt-3 border-t border-warm-border flex flex-col sm:flex-row items-center justify-between gap-2.5 shrink-0">
+          <button
+            type="button"
+            onClick={handleResetAll}
+            className="w-full sm:w-auto text-xs font-semibold text-warm-textMuted hover:text-warm-textDark py-2 px-3 rounded-xl hover:bg-warm-cardMuted transition flex items-center justify-center gap-1.5"
+          >
+            <RotateCcw className="w-3.5 h-3.5" />
+            Reset All Defaults
+          </button>
+
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 sm:flex-none text-xs font-bold text-warm-textDark py-2.5 px-4 rounded-xl border border-warm-border hover:bg-warm-cardMuted transition"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleSaveAll}
+              className="flex-1 sm:flex-none text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 py-2.5 px-6 rounded-xl shadow-xs transition active:scale-95 flex items-center justify-center gap-1.5"
+            >
+              <Check className="w-4 h-4" />
+              Save Preferences
+            </button>
           </div>
         </div>
 
-        {/* 4. Live Test Notification Simulator Buttons */}
-        <div className="pt-1 space-y-2">
-          <span className="text-[11px] font-bold text-warm-textMuted uppercase tracking-wider block">
-            Test Realtime Notification Banners
-          </span>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-            <button
-              type="button"
-              onClick={() => handleSendTestAlert('period')}
-              className="py-2.5 px-3 bg-gradient-to-r from-brand-600 to-rose-500 hover:from-brand-700 hover:to-rose-600 text-white font-bold text-xs rounded-xl shadow-soft transition flex items-center justify-center gap-1.5"
-            >
-              <Calendar className="w-3.5 h-3.5" />
-              <span>Period Alert</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => handleSendTestAlert('welcome')}
-              className="py-2.5 px-3 bg-gradient-to-r from-plum-600 to-brand-600 hover:from-plum-700 hover:to-brand-700 text-white font-bold text-xs rounded-xl shadow-soft transition flex items-center justify-center gap-1.5"
-            >
-              <Heart className="w-3.5 h-3.5 fill-white" />
-              <span>Welcome Note</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => handleSendTestAlert('hydration')}
-              className="py-2.5 px-3 bg-gradient-to-r from-cyan-600 to-teal-500 hover:from-cyan-700 hover:to-teal-600 text-white font-bold text-xs rounded-xl shadow-soft transition flex items-center justify-center gap-1.5"
-            >
-              <Droplets className="w-3.5 h-3.5" />
-              <span>Hydration Alert</span>
-            </button>
-          </div>
-        </div>
       </div>
+
+      {/* Ringtone Selection Modal Overlay */}
+      <RingtonePickerModal
+        isOpen={ringtonePickerOpen}
+        onClose={() => setRingtonePickerOpen(false)}
+        targetCategoryTitle={getTargetTitle()}
+        selectedRingtoneId={currentSelectedRingtoneId()}
+        onSelectRingtone={handleSelectedRingtone}
+        masterVolume={settings.master.volume}
+      />
     </div>
   );
 };
