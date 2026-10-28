@@ -19,6 +19,7 @@ import {
 import { LotusBloomIcon } from '../components/common/LotusBloomIcon';
 import { Language, INDIAN_LANGUAGES } from '../services/i18n';
 import { saheliMemory } from '../services/saheliMemory';
+import { voicePipeline } from '../services/voicePipeline';
 
 interface AIGuidePageProps {
   currentUser: UserProfile;
@@ -120,11 +121,13 @@ export const AIGuidePage: React.FC<AIGuidePageProps> = ({
   }, [currentUser]);
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      synthRef.current = window.speechSynthesis;
-    }
+    const unsubVoice = voicePipeline.subscribe((isSpeaking, activeId) => {
+      setSpeakingMessageId(isSpeaking ? (activeId || 'active') : null);
+    });
+
     return () => {
-      if (synthRef.current) synthRef.current.cancel();
+      unsubVoice();
+      voicePipeline.stop();
       if (recognitionRef.current) {
         try { recognitionRef.current.abort(); } catch (e) {}
       }
@@ -135,47 +138,16 @@ export const AIGuidePage: React.FC<AIGuidePageProps> = ({
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, loading]);
 
-  // Read message aloud
+  // Read message aloud using resilient Voice Pipeline
   function handleSpeak(messageId: string, text: string) {
-    if (!synthRef.current) return;
-
     if (speakingMessageId === messageId) {
-      synthRef.current.cancel();
+      voicePipeline.stop();
       setSpeakingMessageId(null);
       return;
     }
 
-    try {
-      synthRef.current.cancel();
-      const cleanText = text
-        .replace(/[*_#`~[\]]/g, '')
-        .replace(/\n+/g, ' ')
-        .slice(0, 450);
-
-      const utterance = new SpeechSynthesisUtterance(cleanText);
-      utterance.lang = currentLangMeta.speechTag;
-      utterance.rate = 0.95;
-      utterance.pitch = 1.05;
-
-      const voices = synthRef.current.getVoices();
-      const matchingVoice = voices.find(v => 
-        v.lang.toLowerCase() === currentLangMeta.speechTag.toLowerCase() ||
-        v.lang.toLowerCase().startsWith(currentLangMeta.speechTag.slice(0, 2).toLowerCase())
-      ) || voices[0];
-
-      if (matchingVoice) {
-        utterance.voice = matchingVoice;
-      }
-
-      utterance.onstart = () => setSpeakingMessageId(messageId);
-      utterance.onend = () => setSpeakingMessageId(null);
-      utterance.onerror = () => setSpeakingMessageId(null);
-
-      synthRef.current.speak(utterance);
-    } catch (e) {
-      console.warn("Speech error:", e);
-      setSpeakingMessageId(null);
-    }
+    voicePipeline.primeUserGesture();
+    voicePipeline.speak(text, currentLangMeta.code, messageId);
   }
 
   // Quick microphone speech-to-text in the chat bar
@@ -235,7 +207,8 @@ export const AIGuidePage: React.FC<AIGuidePageProps> = ({
     const text = textToSend || input;
     if (!text.trim() || loading) return;
 
-    if (synthRef.current) synthRef.current.cancel();
+    voicePipeline.primeUserGesture();
+    voicePipeline.stop();
     setSpeakingMessageId(null);
 
     saheliMemory.addMessage({

@@ -27,6 +27,7 @@ import { api } from '../services/api';
 import { UserProfile } from '../types';
 import { INDIAN_LANGUAGES, LanguageMeta } from '../services/i18n';
 import { saheliMemory, SaheliMessage } from '../services/saheliMemory';
+import { voicePipeline } from '../services/voicePipeline';
 import { useBackHandler } from '../services/backNavigation';
 
 interface VoiceAssistantModalProps {
@@ -225,21 +226,25 @@ export const VoiceAssistantModal: React.FC<VoiceAssistantModalProps> = ({
   }, [messages, state]);
 
   function stopAllAudio() {
+    voicePipeline.stop();
     if (recognitionRef.current) {
       try {
         recognitionRef.current.abort();
-      } catch (e) {
-        // ignore
-      }
-    }
-    if (synthRef.current) {
-      try {
-        synthRef.current.cancel();
-      } catch (e) {
-        // ignore
-      }
+      } catch (e) {}
     }
   }
+
+  // Subscribe to voicePipeline speaking state
+  useEffect(() => {
+    const unsub = voicePipeline.subscribe((isSpeaking) => {
+      if (isSpeaking) {
+        setState('speaking');
+      } else if (state === 'speaking') {
+        setState('idle');
+      }
+    });
+    return () => unsub();
+  }, [state]);
 
   // Language auto-detection engine
   function autoDetectLanguage(text: string): LanguageMeta | null {
@@ -304,95 +309,34 @@ export const VoiceAssistantModal: React.FC<VoiceAssistantModalProps> = ({
     }
   }
 
-  // Speak text aloud using SpeechSynthesis
+  // Speak text aloud using resilient Voice Pipeline (Cloud TTS / Backend / SpeechSynthesis)
   function speak(text: string, forceLanguage?: LanguageMeta) {
-    if (isMuted || !synthRef.current) return;
+    if (isMuted) return;
 
-    try {
-      synthRef.current.cancel();
-
-      // Clean markdown tags & citations for conversational natural voice
-      const cleanText = text
-        .replace(/[*_#`~[\]]/g, '')
-        .replace(/https?:\/\/\S+/g, '')
-        .replace(/\n+/g, ' ')
-        .slice(0, 420);
-
-      const utterance = new SpeechSynthesisUtterance(cleanText);
-      currentUtteranceRef.current = utterance;
-
-      const langToUse = forceLanguage || selectedLang;
-      utterance.lang = langToUse.speechTag;
-      utterance.rate = speechRate;
-      utterance.pitch = speechPitch;
-
-      // Select voice: user custom voice or closest locale match
-      const voices = synthRef.current.getVoices();
-      let chosenVoice: SpeechSynthesisVoice | undefined;
-
-      if (selectedVoiceURI) {
-        chosenVoice = voices.find(v => v.voiceURI === selectedVoiceURI);
-      }
-
-      if (!chosenVoice) {
-        // Priority match: matching speechTag or language prefix
-        chosenVoice = voices.find(v => 
-          v.lang.toLowerCase() === langToUse.speechTag.toLowerCase()
-        ) || voices.find(v =>
-          v.lang.toLowerCase().startsWith(langToUse.speechTag.slice(0, 2).toLowerCase())
-        ) || voices.find(v => 
-          v.lang.toLowerCase().includes('in') || v.lang.toLowerCase().startsWith('en')
-        ) || voices[0];
-      }
-
-      if (chosenVoice) {
-        utterance.voice = chosenVoice;
-        setVoiceNotice('');
-      } else {
-        setVoiceNotice(`Spoken voice not installed on device for ${langToUse.name}; showing text response.`);
-      }
-
-      utterance.onstart = () => {
-        setState('speaking');
-      };
-
-      utterance.onend = () => {
-        setState('idle');
-      };
-
-      utterance.onerror = (e) => {
-        console.warn("Speech synthesis notice:", e);
-        setState('idle');
-      };
-
-      synthRef.current.speak(utterance);
-    } catch (e) {
-      console.error("Speech synthesis failed:", e);
-      setState('idle');
-    }
+    const langToUse = forceLanguage || selectedLang;
+    setState('speaking');
+    voicePipeline.speak(text, langToUse.code);
   }
 
   // Interrupt Saheli and start listening to user's follow-up immediately
   function handleInterrupt() {
+    voicePipeline.stop();
     stopAllAudio();
     startListening();
   }
 
   function handlePauseSpeech() {
-    if (synthRef.current && state === 'speaking') {
-      synthRef.current.pause();
-      setState('paused');
-    }
+    voicePipeline.pause();
+    setState('paused');
   }
 
   function handleResumeSpeech() {
-    if (synthRef.current && state === 'paused') {
-      synthRef.current.resume();
-      setState('speaking');
-    }
+    voicePipeline.resume();
+    setState('speaking');
   }
 
   function handleStopSpeech() {
+    voicePipeline.stop();
     stopAllAudio();
     setState('idle');
   }
@@ -405,6 +349,7 @@ export const VoiceAssistantModal: React.FC<VoiceAssistantModalProps> = ({
 
   // Start two-way voice recognition
   async function startListening() {
+    voicePipeline.primeUserGesture();
     stopAllAudio();
     setErrorMessage('');
     setVoiceNotice('');
@@ -555,6 +500,7 @@ export const VoiceAssistantModal: React.FC<VoiceAssistantModalProps> = ({
   function handleTextSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!textInput.trim()) return;
+    voicePipeline.primeUserGesture();
     const q = textInput.trim();
     setTextInput('');
     processQuery(q, false);

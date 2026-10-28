@@ -1,6 +1,6 @@
 import { UserProfile, CycleRecord, DailyLogRecord, PeriodPrediction, SymptomForecast, DailyGuidance, PCOSRecord, CortisolRecord } from '../types';
 
-const API_BASE = (import.meta as any).env?.VITE_API_URL || 'http://localhost:8001/api';
+export const API_BASE = (import.meta as any).env?.VITE_API_URL || 'http://localhost:8001/api';
 
 // Fallback demo users for instant resilience
 export const FALLBACK_DEMO_USERS: UserProfile[] = [
